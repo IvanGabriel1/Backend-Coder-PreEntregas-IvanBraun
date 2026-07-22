@@ -10,7 +10,7 @@ class ServiceManager {
         return this.services;
     }
 
-    getElementById(id) {
+    getServiceById(id) {
         const service = this.services.find(service => service.id === id);
         if ( !service) {
             throw new Error("Servicio no encontrado");
