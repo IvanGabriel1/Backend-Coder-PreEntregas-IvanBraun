@@ -71,7 +71,7 @@ class ServiceManager {
          }
 
             const exists = this.services.find(
-            service => service.name === name && service.id !== id
+            service => service.name === name && service.id !== Number(id)
          );
 
         if (exists) {
@@ -79,37 +79,53 @@ class ServiceManager {
         }
     }
 
-    getServices() {
-        return this.services;
+    getServices(category, available) {
+        let filteredServices = this.services;
+
+        if(category) {
+            filteredServices = filteredServices.filter(
+                service => service.category.toLocaleLowerCase() === category.toLocaleLowerCase()
+            );
+        }
+
+        if (available) {
+            filteredServices = filteredServices.filter(
+                service => service.available = (available === "true")
+            );
+        }
+
+        return filteredServices;
     }
 
     getServiceById(id) {
-        const service = this.services.find(service => service.id === id);
-        if ( !service) {
-            throw new Error("Servicio no encontrado");
-        }
-        
-        return service;
+        return this.services.find(
+        service => service.id === Number(id)
+    );
     }
 
     addService(service) {
-
+        
         if (!service || typeof service !== "object" || Array.isArray(service)) {
-        throw new Error("Debe enviar un objeto válido");
-        }
+    throw new Error("Debe enviar un objeto válido");
+}
 
-        const maxId = this.services.length
-         ? Math.max(...this.services.map(service => service.id))
-         : 0;
+           if (service.id !== undefined) {
+        throw new Error("No debe enviar el id del servicio");
+    }
 
-        const newId = maxId + 1;
-
-        const newService = {
-            id: newId,
-            ...service
-        };
-
-        this.validateService(newService);
+    
+    const maxId = this.services.length
+    ? Math.max(...this.services.map(service => service.id))
+    : 0;
+    
+    const newId = maxId + 1;
+    
+    const newService = {
+        id: newId,
+        ...service
+    };
+    
+    this.validateService(newService);
 
         this.services.push(newService);
 
@@ -119,10 +135,10 @@ class ServiceManager {
     updateService(id, updatedService) {
 
         if (!updatedService || typeof updatedService !== "object" || Array.isArray(updatedService)) {
-    throw new Error("Debe enviar un objeto válido");
-}
+           throw new Error("Debe enviar un objeto válido");
+        }
         
-        const serviceIndex = this.services.findIndex(service => service.id === id); 
+        const serviceIndex = this.services.findIndex(service => service.id === Number(id)); 
         
         if (serviceIndex === -1) {
             throw new Error(`Servicio con id ${id} no encontrado`);
@@ -142,7 +158,7 @@ class ServiceManager {
     }
 
     deleteService(id) { 
-        const serviceIndex = this.services.findIndex(service => service.id === id);
+        const serviceIndex = this.services.findIndex(service => service.id === Number(id));
         if (serviceIndex === -1) {
             throw new Error(`Servicio con id ${id} no encontrado`);
         }

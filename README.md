@@ -2,13 +2,16 @@
 
 ## Descripción
 
-Este proyecto implementa un administrador de servicios para un sistema de turnos y reservas utilizando Node.js, módulos ES (ESM) y dotenv. La lógica principal se encuentra en la clase `ServiceManager`, encargada de gestionar los servicios.
+Este proyecto implementa un administrador de servicios para un sistema de turnos y reservas utilizando Node.js, Express, módulos ES (ESM) y dotenv.
+
+La lógica principal se encuentra en la clase ServiceManager, encargada de gestionar los servicios. Express se utiliza para crear la API y definir las rutas correspondientes a las operaciones CRUD.
 
 ## Tecnologias utilizadas
 
-- node.js
+- Node.js
+- Express
 - dotenv
-- HTTP (módulo nativo de Node.js)
+- ES Modules (ESM)
 
 ## Instalacion
 
@@ -37,6 +40,10 @@ Modo desarrollo:
 npm run dev
 ```
 
+El servidor se ejecuta en:
+
+http://localhost:8080
+
 ## Variables de entorno
 
 Crear un archivo `.env` en la raíz del proyecto con el siguiente contenido:
@@ -64,48 +71,113 @@ Cada servicio posee la siguiente estructura:
 }
 ```
 
-## Ejemplos de uso de los métodos
+## Endpoints
 
 ### Obtener todos los servicios
 
 ```js
-serviceManager.getServices();
+GET /api/services
 ```
 
 ### Obtener un servicio por ID
 
 ```js
-serviceManager.getServiceById(1);
+GET /api/services/:id
 ```
 
 ### Agregar un servicio
 
 ```js
-serviceManager.addService({
-    name: "Masaje",
-    description: "Masaje relajante",
-    duration: 60,
-    price: 25000,
-    category: "Bienestar",
-    available: true
-});
+POST /api/services
 ```
+
+Ejemplo de body:
+
+```js
+
+{
+  "name": "Masaje",
+  "description": "Masaje relajante",
+  "duration": 60,
+  "price": 25000,
+  "category": "Bienestar",
+  "available": true
+}
+
+```
+
+El id no debe enviarse en el body. Se genera internamente.
 
 ### Actualizar un servicio
 
 ```js
-serviceManager.updateService(1, {
-    name: "Masaje Premium",
-    description: "Masaje relajante",
-    duration: 90,
-    price: 30000,
-    category: "Bienestar",
-    available: true
-});
+PUT /api/services/:id
+```
+
+Ejemplo de body:
+
+```js
+{ 
+    "name": "Masaje Premium",
+    "description": "Masaje relajante",
+    "duration": 90,
+    "price": 30000,
+    "category": "Bienestar",
+    "available": true 
+}
 ```
 
 ### Eliminar un servicio
 
 ```js
+DELETE /api/services/:id
+```
+
+Ejemplo: 
+
+```js 
+DELETE /api/services/1
+```
+
+## Metodos de ServiceManager
+
+### Obtener todos los servicios
+
+``` js
+serviceManager.getServices();
+```
+
+### Obtener un servicio por ID
+
+``` js
+serviceManager.getServiceById(1);
+```
+
+### Agregar un servicio
+
+``` js
+serviceManager.addService({ 
+    name: "Masaje",
+    description: "Masaje relajante", 
+    duration: 60, 
+    price: 25000, 
+    category: "Bienestar", 
+    available: true });
+```
+### Actualizar un servicio
+
+``` js
+serviceManager.updateService(1, { 
+    name: "Masaje Premium", 
+    description: "Masaje relajante", 
+    duration: 90, 
+    price: 30000, 
+    category: "Bienestar", 
+    available: true });
+```
+
+### Eliminar un servicio
+
+``` js
 serviceManager.deleteService(1);
 ```
