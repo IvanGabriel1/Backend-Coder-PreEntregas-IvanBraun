@@ -1,43 +1,57 @@
 import { Router } from 'express';
-import ServiceManager from '../managers/ServiceManager.js';
+import { serviceManager } from "../managers/index.js";
 
 const router = Router();
 
-const serviceManager = new ServiceManager();
 
-router.get('/', (req, res) => {
-    const { category, available } = req.query;
+router.get('/', async (req, res) => {
+    try {
+        const { category, available } = req.query;
 
-    const services = serviceManager.getServices(category, available);
+        const services = await serviceManager.getServices(
+            category,
+            available
+        );
 
-    res.status(200).json({
-        status: 'success',
-        payload: services
+        res.json({
+            status: 'success',
+            payload: services
+        });
 
-    })
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: error.message
+        });
+    }
 })
 
-router.get('/:sid', (req, res) => {
-    const { sid } = req.params;
-    const service = serviceManager.getServiceById(sid);
+router.get('/:sid', async (req, res) => {
 
-    if(!service) {
-        return res.status(404).json({
-        status: 'error',
-        message: 'Servicio no encontrado'
-    });
+    try {
+
+        const { sid } = req.params;
+        const service = await serviceManager.getServiceById(sid);
+        
+        res.status(200).json({
+            status: 'success',
+            payload: service
+        });
+
+    } catch (error) {
+        
+            return res.status(404).json({
+                status: 'error',
+                message: 'Servicio no encontrado'
+            });
+      
     }
-
-    res.status(200).json({
-        status: 'success',
-        payload: service
-    });
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
     try {
         const newService = req.body;
-        const service = serviceManager.addService(newService);
+        const service = await serviceManager.addService(newService);
 
         res.status(201).json({
             status: 'success',
@@ -53,11 +67,11 @@ router.post('/', (req, res) => {
     }
 });
 
-router.put('/:sid', (req, res) => {
+router.put('/:sid', async (req, res) => {
     try {
         const {sid} = req.params;
         const updateData = req.body;
-        const updatedService = serviceManager.updateService(sid, updateData);
+        const updatedService = await serviceManager.updateService(sid, updateData);
          
         res.status(200).json({
             status: 'success',
@@ -66,19 +80,27 @@ router.put('/:sid', (req, res) => {
         });
 
     } catch (error) { 
-          return res.status(404).json({
-                status: "error",
+
+        if (error.message.includes('no encontrado')) {
+            return res.status(404).json({
+                status: 'error',
                 message: error.message
-            })
+            });
+        }
+         
+         res.status(400).json({
+            status: 'error',
+            message: error.message
+        });
     }
 })
 
-router.delete('/:sid', (req, res) => {
+router.delete('/:sid', async (req, res) => {
 
     try {
 
         const { sid } = req.params;        
-        const deletedService = serviceManager.deleteService(sid);
+        const deletedService = await serviceManager.deleteService(sid);
 
         res.status(200).json( {
             status: 'success',
@@ -87,10 +109,19 @@ router.delete('/:sid', (req, res) => {
             
         })
     } catch (error) {
+
+            if (error.message.includes('no encontrado')) {
             return res.status(404).json({
                 status: 'error',
                 message: error.message
-            })
+            });
+        }
+         
+         res.status(400).json({
+            status: 'error',
+            message: error.message
+        });
+        
     }
 })
 

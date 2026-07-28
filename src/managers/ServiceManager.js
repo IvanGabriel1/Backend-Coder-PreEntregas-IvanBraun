@@ -1,14 +1,29 @@
-import services from "../data/services.json" with { type: "json" };
+import fs from "node:fs/promises";
 
 class ServiceManager {
-
-    constructor() {
-        this.services = services;
+    
+     constructor(filePath) {
+        this.filePath = filePath;
     }
 
-    validateService(serviceData, id = null) {
+    async readServices() {
+      try {
+        const data = await fs.readFile(this.filePath, 'utf-8');
+          return JSON.parse(data);
+      } catch (error) {
+          return [];
+      } 
+    }
 
-   const { name, description, price, category, duration, available } = serviceData;
+    async writeServices(services) {
+       await fs.writeFile(this.filePath,
+        JSON.stringify(services, null, 2)
+    );
+   }
+
+    validateService(serviceData, services, id = null) {
+        
+        const { name, description, price, category, duration, available } = serviceData;
 
           if (!name) {
             throw new Error("El nombre del servicio es obligatorio");
@@ -70,7 +85,7 @@ class ServiceManager {
              throw new Error("El precio debe ser un número válido");
          }
 
-            const exists = this.services.find(
+            const exists = services.find(
             service => service.name === name && service.id !== Number(id)
          );
 
@@ -79,43 +94,49 @@ class ServiceManager {
         }
     }
 
-    getServices(category, available) {
-        let filteredServices = this.services;
+   async getServices(category, available) {
+        let services = await this.readServices();
 
         if(category) {
-            filteredServices = filteredServices.filter(
+            services = services.filter(
                 service => service.category.toLocaleLowerCase() === category.toLocaleLowerCase()
             );
         }
 
         if (available) {
-            filteredServices = filteredServices.filter(
-                service => service.available = (available === "true")
+            services = services.filter(
+                service => service.available === (available === "true")
             );
         }
 
-        return filteredServices;
+        return services;
     }
 
-    getServiceById(id) {
-        return this.services.find(
-        service => service.id === Number(id)
-    );
-    }
+  async getServiceById(id) {
+    const services = await this.readServices();
 
-    addService(service) {
-        
-        if (!service || typeof service !== "object" || Array.isArray(service)) {
-    throw new Error("Debe enviar un objeto válido");
-}
+    const service = services.find( service => service.id === Number(id));
 
-           if (service.id !== undefined) {
-        throw new Error("No debe enviar el id del servicio");
-    }
+    if (!service) { return null };
+
+    return service;
+    };
+
+   async addService(service) {
+
+       if (!service || typeof service !== "object" || Array.isArray(service)) {
+           throw new Error("Debe enviar un objeto válido");
+       }
 
     
-    const maxId = this.services.length
-    ? Math.max(...this.services.map(service => service.id))
+    if (service.id !== undefined) {
+        throw new Error("No debe enviar el id del servicio");
+    }
+    
+    const services = await this.readServices();
+
+    const maxId = services.length
+    ? Math.max(...services.map(service => service.id))
     : 0;
     
     const newId = maxId + 1;
@@ -125,45 +146,59 @@ class ServiceManager {
         ...service
     };
     
-    this.validateService(newService);
+        this.validateService(newService, services);
 
-        this.services.push(newService);
+        services.push(newService);
 
-        return newService;
+        await this.writeServices(services);
+
+        return  newService;
     }
 
-    updateService(id, updatedService) {
+   async updateService(id, updatedService) {
+
+    const services = await this.readServices();
 
         if (!updatedService || typeof updatedService !== "object" || Array.isArray(updatedService)) {
            throw new Error("Debe enviar un objeto válido");
         }
         
-        const serviceIndex = this.services.findIndex(service => service.id === Number(id)); 
+        const serviceIndex = services.findIndex(service => service.id === Number(id)); 
         
         if (serviceIndex === -1) {
             throw new Error(`Servicio con id ${id} no encontrado`);
         }
     
-        
-        this.validateService(updatedService, id); 
-
-        this.services[serviceIndex] = {
-            ...this.services[serviceIndex],
+        const serviceToUpdate = {
+            ...services[serviceIndex],
             ...updatedService,
-            id
-        };
+            id: Number(id),
+        }
 
-        return this.services[serviceIndex];
+        this.validateService(serviceToUpdate, services, id); 
+
+        services[serviceIndex] = serviceToUpdate;
+
+        await this.writeServices(services);
+
+        return services[serviceIndex];
 
     }
 
-    deleteService(id) { 
-        const serviceIndex = this.services.findIndex(service => service.id === Number(id));
+   async deleteService(id) { 
+        const services = await this.readServices();
+
+        const serviceIndex = services.findIndex(service => service.id === Number(id));
+
         if (serviceIndex === -1) {
             throw new Error(`Servicio con id ${id} no encontrado`);
         }
 
-        return this.services.splice(serviceIndex, 1)[0];
+        const [deletedService] = services.splice(serviceIndex, 1);
+
+        await this.writeServices(services)
+
+        return deletedService;
     }
 }
 
