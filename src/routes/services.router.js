@@ -27,29 +27,45 @@ router.get('/', async (req, res) => {
 })
 
 router.get('/:sid', async (req, res) => {
-
     try {
-
         const { sid } = req.params;
+
         const service = await serviceManager.getServiceById(sid);
-        
+
+        if (!service) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Servicio no encontrado'
+            });
+        }
+
         res.status(200).json({
             status: 'success',
             payload: service
         });
 
     } catch (error) {
-        
-            return res.status(404).json({
-                status: 'error',
-                message: 'Servicio no encontrado'
-            });
-      
+        res.status(500).json({
+            status: 'error',
+            message: error.message
+        });
     }
 });
 
 router.post('/', async (req, res) => {
     try {
+
+        if (
+            !req.body ||
+            typeof req.body !== 'object' ||
+            Array.isArray(req.body)
+        ) {
+            return res.status(400).json({
+             status: 'error',
+             message: 'Debe enviar un objeto válido'
+            });
+        }
+
         const newService = req.body;
         const service = await serviceManager.addService(newService);
 
@@ -69,6 +85,18 @@ router.post('/', async (req, res) => {
 
 router.put('/:sid', async (req, res) => {
     try {
+
+        if (
+            !req.body ||
+            typeof req.body !== 'object' ||
+            Array.isArray(req.body)
+        ) {
+            return res.status(400).json({
+             status: 'error',
+             message: 'Debe enviar un objeto válido'
+            });
+        }
+
         const {sid} = req.params;
         const updateData = req.body;
         const updatedService = await serviceManager.updateService(sid, updateData);

@@ -1,32 +1,34 @@
-# Administrador de Servicios - Backend Turnos y Reservas
+# Sistema de Turnos y Reservas - Backend
 
 ## Descripción
 
-Este proyecto implementa un administrador de servicios para un sistema de turnos y reservas utilizando Node.js, Express, módulos ES (ESM) y dotenv.
+Este proyecto implementa una API REST para la gestión de servicios y reservas utilizando Node.js, Express, módulos ES (ESM), dotenv y persistencia de datos mediante archivos JSON.
 
-La lógica principal se encuentra en la clase ServiceManager, encargada de gestionar los servicios. Express se utiliza para crear la API y definir las rutas correspondientes a las operaciones CRUD.
+La aplicación permite administrar servicios mediante operaciones CRUD y gestionar reservas, asociando uno o varios servicios a cada reserva.
 
-## Tecnologias utilizadas
+## Tecnologías utilizadas
 
 - Node.js
 - Express
 - dotenv
 - ES Modules (ESM)
+- fs/promises
 
-## Instalacion
+## Instalación
 
 1. Clonar el repositorio
+
 ```bash
 git clone https://github.com/IvanGabriel1/Backend-Coder-PreEntregas-IvanBraun.git
 ```
 
-2. Entrar a la carpeta del proyecto:
+2. Entrar al proyecto
 
 ```bash
 cd backend-turnos-reservas
 ```
 
-3. Instalar las dependencias:
+3. Instalar dependencias
 
 ```bash
 npm install
@@ -40,13 +42,15 @@ Modo desarrollo:
 npm run dev
 ```
 
-El servidor se ejecuta en:
+El servidor se ejecutará en:
 
+```
 http://localhost:8080
+```
 
 ## Variables de entorno
 
-Crear un archivo `.env` en la raíz del proyecto con el siguiente contenido:
+Crear un archivo `.env` en la raíz del proyecto:
 
 ```env
 PORT=8080
@@ -55,19 +59,45 @@ NODE_ENV=development
 
 También se incluye un archivo `.env.example` como referencia.
 
-## Recurso: Services
+---
+
+# Estructura del proyecto
+
+```
+src/
+│
+├── config/
+├── data/
+│   ├── services.json
+│   └── booking.json
+│
+├── managers/
+│   ├── ServiceManager.js
+│   ├── BookingManager.js
+│   └── index.js
+│
+├── routes/
+│   ├── services.router.js
+│   └── booking.router.js
+│
+└── app.js
+```
+
+---
+
+# Recurso: Services
 
 Cada servicio posee la siguiente estructura:
 
 ```json
 {
   "id": 1,
-    "name": "Consulta médica",
-    "description": "Consulta clínica general",
-    "duration": 30,
-    "price": 12000,
-    "category": "Salud",
-    "available": true
+  "name": "Consulta médica",
+  "description": "Consulta clínica general",
+  "duration": 30,
+  "price": 12000,
+  "category": "Salud",
+  "available": true
 }
 ```
 
@@ -75,26 +105,43 @@ Cada servicio posee la siguiente estructura:
 
 ### Obtener todos los servicios
 
-```js
+```http
 GET /api/services
 ```
 
-### Obtener un servicio por ID
+Permite filtrar mediante query params:
 
-```js
-GET /api/services/:id
+```http
+GET /api/services?category=Salud
 ```
 
-### Agregar un servicio
+```http
+GET /api/services?available=true
+```
 
-```js
+```http
+GET /api/services?category=Salud&available=true
+```
+
+---
+
+### Obtener servicio por ID
+
+```http
+GET /api/services/:sid
+```
+
+---
+
+### Crear servicio
+
+```http
 POST /api/services
 ```
 
-Ejemplo de body:
+Body:
 
-```js
-
+```json
 {
   "name": "Masaje",
   "description": "Masaje relajante",
@@ -103,81 +150,153 @@ Ejemplo de body:
   "category": "Bienestar",
   "available": true
 }
-
 ```
 
-El id no debe enviarse en el body. Se genera internamente.
+> El id se genera automáticamente.
 
-### Actualizar un servicio
+---
 
-```js
-PUT /api/services/:id
+### Actualizar servicio
+
+```http
+PUT /api/services/:sid
 ```
 
-Ejemplo de body:
+---
 
-```js
-{ 
-    "name": "Masaje Premium",
-    "description": "Masaje relajante",
-    "duration": 90,
-    "price": 30000,
-    "category": "Bienestar",
-    "available": true 
+### Eliminar servicio
+
+```http
+DELETE /api/services/:sid
+```
+
+---
+
+# Recurso: Bookings
+
+Cada reserva posee la siguiente estructura:
+
+```json
+{
+  "id": 1,
+  "clientName": "Ivan Braun",
+  "clientEmail": "ivan@gmail.com",
+  "date": "2026-07-30",
+  "time": "15:30",
+  "status": "pendiente",
+  "services": []
 }
 ```
 
-### Eliminar un servicio
+Los servicios asociados se almacenan de la siguiente forma:
+
+```json
+{
+  "service": 2,
+  "quantity": 1
+}
+```
+
+Si el mismo servicio se agrega nuevamente, únicamente se incrementa el campo `quantity`.
+
+## Endpoints
+
+### Crear reserva
+
+```http
+POST /api/bookings
+```
+
+Body:
+
+```json
+{
+  "clientName": "Ivan Braun",
+  "clientEmail": "ivan@gmail.com",
+  "date": "2026-07-30",
+  "time": "15:30",
+  "status": "pendiente"
+}
+```
+
+---
+
+### Obtener reserva por ID
+
+```http
+GET /api/bookings/:bid
+```
+
+---
+
+### Agregar un servicio a una reserva
+
+```http
+POST /api/bookings/:bid/services/:sid
+```
+
+Si el servicio ya existe dentro de la reserva, se incrementa automáticamente su cantidad.
+
+---
+
+# Managers
+
+## ServiceManager
+
+Gestiona la persistencia y operaciones sobre los servicios.
+
+### Métodos
 
 ```js
-DELETE /api/services/:id
+getServices(category, available)
 ```
 
-Ejemplo: 
-
-```js 
-DELETE /api/services/1
+```js
+getServiceById(id)
 ```
 
-## Metodos de ServiceManager
-
-### Obtener todos los servicios
-
-``` js
-serviceManager.getServices();
+```js
+addService(service)
 ```
 
-### Obtener un servicio por ID
-
-``` js
-serviceManager.getServiceById(1);
+```js
+updateService(id, updatedService)
 ```
 
-### Agregar un servicio
-
-``` js
-serviceManager.addService({ 
-    name: "Masaje",
-    description: "Masaje relajante", 
-    duration: 60, 
-    price: 25000, 
-    category: "Bienestar", 
-    available: true });
-```
-### Actualizar un servicio
-
-``` js
-serviceManager.updateService(1, { 
-    name: "Masaje Premium", 
-    description: "Masaje relajante", 
-    duration: 90, 
-    price: 30000, 
-    category: "Bienestar", 
-    available: true });
+```js
+deleteService(id)
 ```
 
-### Eliminar un servicio
+---
 
-``` js
-serviceManager.deleteService(1);
+## BookingManager
+
+Gestiona las reservas y la asociación de servicios.
+
+### Métodos
+
+```js
+createBooking(bookingData)
 ```
+
+```js
+getBookingById(id)
+```
+
+```js
+addServiceToBooking(bookingId, serviceId)
+```
+
+---
+
+# Características implementadas
+
+- CRUD completo de servicios.
+- Gestión de reservas.
+- Persistencia mediante archivos JSON utilizando `fs/promises`.
+- IDs generados automáticamente.
+- Validación de datos.
+- Manejo de errores HTTP (400, 404 y 500).
+- Uso de `req.params`, `req.query` y `req.body`.
+- Arquitectura separada en routers y managers.
+- Configuración mediante variables de entorno (`dotenv`).
