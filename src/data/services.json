@@ -34,5 +34,14 @@
     "price": 7000,
     "category": "Bienestar",
     "available": false
+  },
+  {
+    "id": 5,
+    "name": "Corte de pelo 2",
+    "description": "Corte clásico masculino",
+    "duration": 45,
+    "price": 9000000,
+    "category": "Peluquería",
+    "available": true
   }
 ]
