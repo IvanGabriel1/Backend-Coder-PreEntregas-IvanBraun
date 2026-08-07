@@ -4,13 +4,17 @@
 
 Este proyecto implementa una API REST para la gestión de servicios y reservas utilizando Node.js, Express, módulos ES (ESM), dotenv y persistencia de datos mediante archivos JSON.
 
-La aplicación permite administrar servicios mediante operaciones CRUD y gestionar reservas, asociando servicios a cada reserva.
+La aplicación permite administrar servicios mediante operaciones CRUD y gestionar reservas asociando servicios a cada reserva.
 
-La API está organizada mediante una arquitectura modular separando responsabilidades entre **routers, controllers y managers**:
+La API está organizada mediante una arquitectura en capas separando responsabilidades entre:
 
-- Los **routers** definen los endpoints disponibles.
-- Los **controllers** reciben las peticiones HTTP, ejecutan la lógica correspondiente y generan las respuestas.
-- Los **managers** contienen la lógica de negocio y el acceso a los archivos JSON.
+- **Routers**
+- **Controllers**
+- **Services**
+- **Repositories**
+- **DAO**
+
+Esta estructura permite mantener el código organizado, escalable y desacoplado de la fuente de persistencia.
 
 ---
 
@@ -81,25 +85,36 @@ También se incluye un archivo `.env.example` como referencia.
 src/
 │
 ├── config/
+│   └── env.config.js
+│   └── index.js
 │
 ├── controllers/
 │   ├── services.controller.js
 │   └── bookings.controller.js
 │
+├── services/
+│   ├── services.service.js
+│   └── bookings.service.js
+│
+├── repositories/
+│   ├── services.repository.js
+│   └── bookings.repository.js
+│
+├── dao/
+│   └── fileSystem/
+│       ├── services.dao.js
+│       └── bookings.dao.js
+│
 ├── data/
 │   ├── services.json
 │   └── bookings.json
 │
-├── managers/
-│   ├── ServiceManager.js
-│   ├── BookingManager.js
-│   └── index.js
-│
 ├── routes/
 │   ├── services.router.js
-│   └── booking.router.js
+│   └── bookings.router.js
 │
-└── app.js
+├── app.js
+└── server.js
 ```
 
 ---
@@ -118,17 +133,87 @@ Router
 Controller
    |
    ▼
-Manager
+Service
+   |
+   ▼
+Repository
+   |
+   ▼
+DAO
    |
    ▼
 Archivo JSON
 ```
 
-Cada capa tiene una responsabilidad específica:
+---
 
-- Los routers gestionan las rutas disponibles.
-- Los controllers manejan las solicitudes y respuestas HTTP.
-- Los managers administran la lógica de datos y persistencia.
+## Responsabilidad de cada capa
+
+### Router
+
+Define los endpoints disponibles y deriva cada petición al controller correspondiente.
+
+---
+
+### Controller
+
+Se encarga de manejar la comunicación HTTP:
+
+- Recibe `req.params`.
+- Recibe `req.query`.
+- Recibe `req.body`.
+- Devuelve respuestas mediante `res`.
+
+No contiene lógica de negocio ni acceso directo a datos.
+
+---
+
+### Service
+
+Contiene la lógica de negocio de la aplicación:
+
+- Validaciones.
+- Reglas del sistema.
+- Coordinación entre recursos.
+- Preparación de datos antes de persistir.
+
+Ejemplo:
+
+Si un servicio ya existe dentro de una reserva, se incrementa automáticamente su cantidad.
+
+---
+
+### Repository
+
+Funciona como intermediario entre los Services y los DAO.
+
+Su responsabilidad es abstraer la fuente de datos permitiendo cambiar la persistencia sin modificar la lógica de negocio.
+
+---
+
+### DAO (Data Access Object)
+
+Se encarga únicamente del acceso a los datos.
+
+Actualmente utiliza archivos JSON mediante `fs/promises`.
+
+---
+
+# Configuración
+
+El archivo:
+
+```
+src/config/index.js
+```
+
+se encarga de crear e inicializar las instancias necesarias:
+
+- DAO.
+- Repository.
+- Services.
+
+Permitiendo inyectar dependencias entre capas.
 
 ---
 
@@ -152,7 +237,7 @@ Cada servicio posee la siguiente estructura:
 
 # Endpoints Services
 
-## Obtener todos los servicios
+## Obtener servicios
 
 ```http
 GET /api/services
@@ -219,6 +304,8 @@ PUT /api/services/:sid
 DELETE /api/services/:sid
 ```
 
+Un servicio no puede eliminarse si se encuentra asociado a una reserva activa.
+
 ---
 
 # Recurso: Bookings
@@ -237,7 +324,7 @@ Cada reserva posee la siguiente estructura:
 }
 ```
 
-Los servicios asociados se almacenan de la siguiente forma:
+Los servicios asociados se almacenan:
 
 ```json
 {
@@ -245,8 +332,6 @@ Los servicios asociados se almacenan de la siguiente forma:
   "quantity": 1
 }
 ```
-
-Si un servicio ya existe dentro de la reserva, se incrementa automáticamente el campo `quantity`.
 
 ---
 
@@ -268,21 +353,31 @@ GET /api/bookings/:bid
 
 ---
 
-## Agregar un servicio a una reserva
+## Agregar servicio a una reserva
 
 ```http
 POST /api/bookings/:bid/services/:sid
 ```
 
-Si el servicio ya existe dentro de la reserva, se incrementa automáticamente su cantidad.
+Regla de negocio:
+
+Si el mismo servicio se agrega nuevamente dentro de una reserva, se incrementa automáticamente el campo:
+
+```json
+quantity
+```
+
+Esta lógica se encuentra implementada en:
+
+```
+bookings.service.js
+```
 
 ---
 
-# Controllers
+# Services principales
 
-Los controllers contienen la lógica relacionada con las peticiones HTTP.
-
-## Services Controller
+## Services Service
 
 Métodos principales:
 
@@ -295,7 +390,7 @@ getServiceById()
 ```
 
 ```js
-addService()
+createService()
 ```
 
 ```js
@@ -308,7 +403,7 @@ deleteService()
 
 ---
 
-## Bookings Controller
+## Bookings Service
 
 Métodos principales:
 
@@ -326,65 +421,19 @@ addServiceToBooking()
 
 ---
 
-# Managers
-
-Los managers contienen la lógica de negocio, validaciones y persistencia mediante archivos JSON.
-
----
-
-## ServiceManager
-
-Métodos principales:
-
-```js
-getServices(category, available)
-```
-
-```js
-getServiceById(id)
-```
-
-```js
-addService(service)
-```
-
-```js
-updateService(id, updatedService)
-```
-
-```js
-deleteService(id)
-```
-
----
-
-## BookingManager
-
-Métodos principales:
-
-```js
-createBooking(bookingData)
-```
-
-```js
-getBookingById(id)
-```
-
-```js
-addServiceToBooking(bookingId, serviceId)
-```
-
----
-
 # Características implementadas
 
 - CRUD completo de servicios.
 - Gestión de reservas.
+- Arquitectura en capas.
+- Separación de responsabilidades.
 - Persistencia mediante archivos JSON utilizando `fs/promises`.
+- Inyección de dependencias mediante configuración centralizada.
 - IDs generados automáticamente.
 - Validación de datos.
 - Manejo de errores HTTP (400, 404 y 500).
 - Uso de `req.params`, `req.query` y `req.body`.
 - Organización mediante Express Router.
-- Separación de responsabilidades utilizando routers, controllers y managers.
-- Configuración mediante variables de entorno con dotenv.
+- Reglas de negocio implementadas dentro de Services.
+- Acceso a datos aislado mediante DAO.
+- Repositories como capa intermedia entre lógica de negocio y persistencia.

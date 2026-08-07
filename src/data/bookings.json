@@ -24,7 +24,6 @@
     "date": "2026-07-30",
     "time": "15:30",
     "status": "pendiente",
-    "asd": "asd",
     "services": []
   },
   {
@@ -35,28 +34,5 @@
     "time": "15:30",
     "status": "pendiente",
     "services": []
-  },
-  {
-    "id": 4,
-    "clientName": "Ivan Braun 55",
-    "clientEmail": "ivanasdasdsda@gmail.com",
-    "date": "2026-07-30",
-    "time": "15:30",
-    "status": "pendiente",
-    "services": []
-  },
-  {
-    "id": 5,
-    "clientName": "Ivan Braun 5500",
-    "clientEmail": "ivanasdasdsda@gmail.com",
-    "date": "2026-07-30",
-    "time": "15:30",
-    "status": "pendiente",
-    "services": [
-      {
-        "service": 2,
-        "quantity": 1
-      }
-    ]
   }
 ]

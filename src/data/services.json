@@ -25,23 +25,5 @@
     "price": 7000,
     "category": "Bienestar",
     "available": false
-  },
-  {
-    "id": 4,
-    "name": "Clase de yoga 5",
-    "description": "Clase grupal inicial",
-    "duration": 60,
-    "price": 7000,
-    "category": "Bienestar",
-    "available": false
-  },
-  {
-    "id": 5,
-    "name": "Corte de pelo 2",
-    "description": "Corte clásico masculino",
-    "duration": 45,
-    "price": 9000000,
-    "category": "Peluquería",
-    "available": true
   }
 ]

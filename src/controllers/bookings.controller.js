@@ -1,10 +1,10 @@
-import { bookingManager } from "../managers/index.js";
+import { bookingService } from "../config/index.js";
 
 export const getBookingById = async (req, res) => {
       try {
        const { bid } = req.params;
 
-       const booking = await bookingManager.getBookingById(bid);
+       const booking = await bookingService.getBookingById(bid);
 
        if (!booking) {
         return res.status(404).json({
@@ -42,7 +42,7 @@ export const createBooking = async (req, res) => {
        }
 
        const newBooking = req.body;
-       const booking = await bookingManager.createBooking(newBooking);
+       const booking = await bookingService.createBooking(newBooking);
 
        res.status(201).json({
         status: 'success',
@@ -62,7 +62,7 @@ export const addServiceToBooking = async (req, res) => {
  try{
         const {bid, sid} = req.params;
 
-        const addBooking = await bookingManager.addServiceToBooking(bid, sid);
+        const addBooking = await bookingService.addServiceToBooking(bid, sid);
 
        res.status(200).json({
         status: 'success',

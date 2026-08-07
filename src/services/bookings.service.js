@@ -1,28 +1,14 @@
-import fs from "node:fs/promises";
-import { serviceManager } from "./index.js";
+import { BookingRepository } from "../repositories/bookings.repository.js";
 
-class BookingManager {
+//Service: contiene la lógica de negocio, realiza las validaciones y coordina las operaciones antes de utilizar el Repository.
+export class BookingService {
 
-    constructor(filePath) {
-        this.filePath = filePath;
-    }
+    constructor(repository, serviceService) {
+    this.repository = repository;
+    this.serviceService = serviceService;
+}
 
-    async readBookings() {
-        try {
-            const data = await fs.readFile(this.filePath, 'utf-8');
-              return JSON.parse(data);
-        } catch (error) {
-            return [];
-        }
-    }
-
-    async writeBookings(bookings) {
-        await fs.writeFile(this.filePath,
-            JSON.stringify(bookings, null, 2)
-        );
-    }
-
-    validateBooking(bookingData) {
+    async  validateBooking(bookingData) {
         const {clientName, clientEmail, date, time, status, services} = bookingData;
 
         if(!clientName) {
@@ -91,80 +77,85 @@ class BookingManager {
         }
 
     }
+    
+    async createBooking(data) {
 
-    async createBooking(bookingData) {
+    await this.validateBooking(data);
 
-        const { clientName, clientEmail, date, time, status } = bookingData;
-
-        const bookings = await this.readBookings();
-        const maxId = bookings.length 
-        ? Math.max(...bookings.map(booking => booking.id))
-        : 0;
-
-        const newId = maxId + 1;
-
-        const newBooking = {
-             id: newId,
-             clientName,
-             clientEmail,
-             date,
-             time,
-             status,
-             services: []
-        };
-
-        this.validateBooking(newBooking);
-
-        bookings.push(newBooking);
-
-        await this.writeBookings(bookings);
-
-        return newBooking;
+    return this.repository.create(data);
     }
 
     async getBookingById(id) {
-        const bookings = await this.readBookings();
-
-        const booking = bookings.find(booking => booking.id === Number(id));
-
-        if (!booking) return null;
-
+        const booking = await this.repository.getById(id);
+        if (!booking) {
+            throw new Error("Reserva no encontrada");
+        }
         return booking;
     }
 
     async addServiceToBooking(bookingId, serviceId) {
 
-        const bookings = await this.readBookings();
 
-        const booking = bookings.find(
-          booking => booking.id === Number(bookingId));
+        const booking = await this.repository.getById(bookingId);
+
+
 
         if (!booking) {
-          throw new Error("Reserva no encontrada");
+            throw new Error("Reserva no encontrada");
         }
-          
-        const service = await serviceManager.getServiceById(serviceId);
+
+
+
+
+        const service = await this.serviceService.getServiceById(serviceId);
+
+
 
         if (!service) {
             throw new Error("Servicio no encontrado");
         }
 
-        const bookingService = booking.services.find(
-            service => service.service === Number(serviceId));
-        
-        if (!bookingService) {
-            booking.services.push({
-                service: Number(serviceId),
-                quantity: 1,
-            })
-        } else {
-            bookingService.quantity++;
+
+
+
+        if (!booking.services) {
+            booking.services = [];
         }
 
-        await this.writeBookings(bookings);
 
-        return booking;
+
+
+        const serviceExists = booking.services.find(
+            service =>
+                service.service === Number(serviceId)
+        );
+
+
+
+        if (serviceExists) {
+
+            serviceExists.quantity += 1;
+
+        } else {
+
+
+            booking.services.push({
+
+                service: Number(serviceId),
+                quantity: 1
+
+            });
+
+        }
+
+
+
+
+        return this.repository.update(
+            bookingId,
+            booking
+        );
+
     }
-}
 
-export default BookingManager;
+}

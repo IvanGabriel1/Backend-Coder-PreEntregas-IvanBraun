@@ -1,10 +1,10 @@
-import { serviceManager } from "../managers/index.js";
+import { serviceService } from "../config/index.js";
 
 export const getServices = async  (req, res) => {
     try {
         const { category, available } = req.query;
 
-       const services = await serviceManager.getServices(category, available);
+       const services = await serviceService.getServices(category, available);
 
         res.status(200).json({
             status: 'success',
@@ -24,14 +24,7 @@ export const getServiceById = async (req, res) => {
     try {
         const { sid } = req.params;
 
-        const service = await serviceManager.getServiceById(Number(sid));
-
-        if (!service) {
-            return res.status(404).json({
-                status: 'error',
-                message: 'Servicio no encontrado'
-            });
-        }
+        const service = await serviceService.getServiceById(Number(sid));
 
         res.status(200).json({
             status: 'success',
@@ -39,6 +32,14 @@ export const getServiceById = async (req, res) => {
         });
 
     } catch (error) {
+        
+        if (error.message === "Servicio no encontrado") {
+            return res.status(404).json({
+                status: 'error',
+                message: error.message
+            });
+        }
+
         res.status(500).json({
             status: 'error',
             message: error.message
@@ -47,23 +48,10 @@ export const getServiceById = async (req, res) => {
 
 }
 
-export const addService = async (req, res) => {
+export const createService = async (req, res) => {
 
-    try {
-
-        if (
-            !req.body ||
-            typeof req.body !== 'object' ||
-            Array.isArray(req.body)
-        ) {
-            return res.status(400).json({
-             status: 'error',
-             message: 'Debe enviar un objeto válido'
-            });
-        }
-
-        const newService = req.body;
-        const service = await serviceManager.addService(newService);
+    try {       
+        const service = await serviceService.createService(req.body);
 
         res.status(201).json({
             status: 'success',
@@ -97,7 +85,7 @@ export const updateService = async (req, res) => {
 
         const {sid} = req.params;
         const updateData = req.body;
-        const updatedService = await serviceManager.updateService(Number(sid), updateData);
+        const updatedService = await serviceService.updateService(Number(sid), updateData);
          
         res.status(200).json({
             status: 'success',
@@ -125,7 +113,7 @@ export const deleteService = async (req, res) => {
     try {
 
         const { sid } = req.params;        
-        const deletedService = await serviceManager.deleteService(Number(sid));
+        const deletedService = await serviceService.deleteService(Number(sid));
 
         res.status(200).json( {
             status: 'success',

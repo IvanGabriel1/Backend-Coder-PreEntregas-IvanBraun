@@ -3,7 +3,6 @@ import { getBookingById, createBooking, addServiceToBooking } from '../controlle
 
 const router = Router();
 
-
 router.get('/:bid', getBookingById);
 
 router.post('/', createBooking);
