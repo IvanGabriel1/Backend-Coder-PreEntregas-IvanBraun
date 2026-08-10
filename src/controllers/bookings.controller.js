@@ -30,17 +30,6 @@ export const createBooking = async (req, res) => {
 
     try {
 
-       if( 
-        !req.body ||
-        typeof req.body !== 'object' ||
-        Array.isArray(req.body)  
-       ) {
-         return res.status(400).json({
-             status: 'error',
-             message: 'Debe enviar un objeto válido'
-            });
-       }
-
        const newBooking = req.body;
        const booking = await bookingService.createBooking(newBooking);
 

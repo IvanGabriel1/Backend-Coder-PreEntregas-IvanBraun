@@ -79,6 +79,13 @@ export class BookingService {
     }
     
     async createBooking(data) {
+          if( 
+        !data ||
+        typeof data !== 'object' ||
+        Array.isArray(data)  
+       ) {
+         throw new Error('Debe enviar un objeto valido');
+       }
 
     await this.validateBooking(data);
 

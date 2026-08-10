@@ -153,6 +153,15 @@ export class ServicesService {
 
     async updateService(id, data) { 
 
+              if (
+            !data ||
+            typeof data !== 'object' ||
+            Array.isArray(data)
+        ) {
+            throw new Error('Debe enviar un objeto valido');
+        }
+
+
         const service = await this.repository.getById(id);
 
         if (!service) {
