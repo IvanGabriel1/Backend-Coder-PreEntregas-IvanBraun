@@ -6,19 +6,20 @@ export const getBookingById = async (req, res) => {
 
        const booking = await bookingService.getBookingById(bid);
 
-       if (!booking) {
-        return res.status(404).json({
-            status: 'error',
-            message: 'Reserva no encontrada'
-        });
-       }
-
       res.status(200).json({
         status: 'success',
         payload: booking
       });
 
     } catch (error) {
+
+         if (error.message === "no encontrada") {
+            return res.status(404).json({
+                status: 'error',
+                message: error.message
+            });
+        }
+
         res.status(500).json({
             status: 'error',
             message: error.message

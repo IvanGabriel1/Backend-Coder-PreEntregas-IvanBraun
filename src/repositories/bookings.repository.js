@@ -1,4 +1,3 @@
-import {BookingDao} from "../dao/fileSystem/bookings.dao.js";
 
 export class BookingRepository {
     constructor(dao) {

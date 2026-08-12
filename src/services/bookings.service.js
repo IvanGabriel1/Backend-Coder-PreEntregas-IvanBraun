@@ -1,14 +1,13 @@
 import { BookingRepository } from "../repositories/bookings.repository.js";
 
-//Service: contiene la lógica de negocio, realiza las validaciones y coordina las operaciones antes de utilizar el Repository.
 export class BookingService {
 
     constructor(repository, serviceService) {
     this.repository = repository;
     this.serviceService = serviceService;
-}
+    }
 
-    async  validateBooking(bookingData) {
+    async validateBooking(bookingData) {
         const {clientName, clientEmail, date, time, status, services} = bookingData;
 
         if(!clientName) {
@@ -79,90 +78,62 @@ export class BookingService {
     }
     
     async createBooking(data) {
-          if( 
-        !data ||
-        typeof data !== 'object' ||
-        Array.isArray(data)  
-       ) {
-         throw new Error('Debe enviar un objeto valido');
-       }
+    const {clientName, clientEmail, date, time, status, services} = data;
 
     await this.validateBooking(data);
 
-    return this.repository.create(data);
+    return this.repository.create({clientName, clientEmail, date, time, status, services});
     }
 
     async getBookingById(id) {
         const booking = await this.repository.getById(id);
         if (!booking) {
-            throw new Error("Reserva no encontrada");
+           const error = new Error("Reserva no encontrada");
+           error.statusCode = 404;
+           throw error; 
         }
+       
         return booking;
     }
 
     async addServiceToBooking(bookingId, serviceId) {
 
-
         const booking = await this.repository.getById(bookingId);
 
-
-
         if (!booking) {
-            throw new Error("Reserva no encontrada");
+           const error = new Error("Reserva no encontrada");
+           error.statusCode = 404;
+           throw error; 
         }
-
-
-
 
         const service = await this.serviceService.getServiceById(serviceId);
 
-
-
-        if (!service) {
-            throw new Error("Servicio no encontrado");
+          if (!service) {
+           const error = new Error("Servicio no encontrado");
+           error.statusCode = 404;
+           throw error; 
         }
-
-
-
 
         if (!booking.services) {
             booking.services = [];
         }
 
-
-
-
         const serviceExists = booking.services.find(
-            service =>
-                service.service === Number(serviceId)
+            item => item.service.toString() === serviceId
         );
-
-
 
         if (serviceExists) {
-
             serviceExists.quantity += 1;
-
         } else {
-
-
             booking.services.push({
-
-                service: Number(serviceId),
+                service: serviceId,
                 quantity: 1
-
             });
-
         }
 
-
-
-
         return this.repository.update(
-            bookingId,
-            booking
+           bookingId,
+           { services: booking.services }
         );
-
     }
-
 }

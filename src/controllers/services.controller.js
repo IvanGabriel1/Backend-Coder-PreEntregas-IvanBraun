@@ -24,7 +24,7 @@ export const getServiceById = async (req, res) => {
     try {
         const { sid } = req.params;
 
-        const service = await serviceService.getServiceById(Number(sid));
+        const service = await serviceService.getServiceById(sid);
 
         res.status(200).json({
             status: 'success',
@@ -72,9 +72,10 @@ export const updateService = async (req, res) => {
 
     try {
 
+        
         const {sid} = req.params;
         const updateData = req.body;
-        const updatedService = await serviceService.updateService(Number(sid), updateData);
+        const updatedService = await serviceService.update(sid, updateData);
          
         res.status(200).json({
             status: 'success',
@@ -102,7 +103,7 @@ export const deleteService = async (req, res) => {
     try {
 
         const { sid } = req.params;        
-        const deletedService = await serviceService.deleteService(Number(sid));
+        const deletedService = await serviceService.delete(sid);
 
         res.status(200).json( {
             status: 'success',

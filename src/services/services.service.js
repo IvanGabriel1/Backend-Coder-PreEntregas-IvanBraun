@@ -1,7 +1,6 @@
 import {ServiceRepository} from "../repositories/services.repository.js";
 import {BookingRepository} from "../repositories/bookings.repository.js";
 
-//Service: contiene la lógica de negocio, realiza las validaciones y coordina las operaciones antes de utilizar el Repository.
 export class ServicesService {
     constructor(repository, bookingRepository) {
         this.repository = repository;
@@ -82,48 +81,59 @@ export class ServicesService {
     }
 
     async createService(data) {
-    const {name, duration, price, category, available} = data;
+    const {name, description, duration, price, category, available} = data;
 
      await this.validateService(data);
 
-     return this.repository.create({ name, duration, price, category, available });
+     return this.repository.create({ name, description, duration, price, category, available });
     }
 
     async getServiceById(id) {
         const service = await this.repository.getById(id);
         if (!service) {
-            throw new Error("Servicio no encontrado");
+           const error = new Error("Servicio no encontrado");
+           error.statusCode = 404;
+           throw error; 
         }
         return service;
     }
     
-   async deleteService(id) {
+   async delete(id) {
 
-    const service = await this.repository.getById(id);
+    const deletedService = await this.repository.delete(id);
 
-    if (!service) {
-        throw new Error("Servicio no encontrado");
-    }
-    
-    
-    const bookings = await this.bookingRepository.getAll(id);
-
-    const bookingUsingService = bookings.find(booking =>
-        booking.status !== "cancelada" &&
-        booking.services.some(
-            s => s.service === Number(id)
-        )
-    );
-
-
-    if (bookingUsingService) {
-        throw new Error(
-            "No se puede eliminar el servicio porque está asociado a una reserva activa"
-        );
+    if(!deletedService) {
+        const error = new Error("Servicio no encontrado");
+        error.statusCode = 404;
+        throw error;
     }
 
+    return deletedService;
 
-    return this.repository.delete(id);
+    // if (!service) {
+    //     const error = new Error("Servicio no encontrado");
+    //     error.statusCode = 404;
+    //     throw error;
+    // }
+    
+    
+    // const bookings = await this.bookingRepository.getAll(id);
+
+    // const bookingUsingService = bookings.find(booking =>
+    //     booking.status !== "cancelada" &&
+    //     booking.services.some(
+    //         s => s.service === Number(id)
+    //     )
+    // );
+
+    // if (bookingUsingService) {
+    //     const error = new Error("No se puede eliminar el servicio porque está asociado a una reserva activa")
+    //     error.statusCode = 400;
+    //     throw error;
+    // }
+
+
+    // return this.repository.delete(id);
    }
 
     async getServices(category, available) {
@@ -131,7 +141,9 @@ export class ServicesService {
     let services = await this.repository.getAll();
 
     if (!services || services.length === 0) {
-        throw new Error("No hay servicios disponibles");
+        const error = new Error("No hay servicios disponibles")
+        error.statusCode = 404;
+        throw error;
     }
 
     if (category) {
@@ -151,32 +163,35 @@ export class ServicesService {
     return services;
    }
 
-    async updateService(id, data) { 
+    async update(id, data) { 
 
-              if (
-            !data ||
-            typeof data !== 'object' ||
-            Array.isArray(data)
+    const {name, description, duration, price, category, available} = data;
+
+        if( !name ||
+            !description ||
+            !duration ||
+            !price ||
+            !category ||
+            available === undefined
         ) {
-            throw new Error('Debe enviar un objeto valido');
+             const error = new Error("Todos los campos son obligatorios");
+             error.statusCode = 400;
+             throw error;
+        }
+
+        const updatedService = await this.repository.update(id, {
+            name, description, duration, price, category, available
+        });
+
+        if(!updatedService){
+             const error = new Error("Servicio no encontrado");
+             error.statusCode = 404;
+             throw error;
         }
 
 
-        const service = await this.repository.getById(id);
 
-        if (!service) {
-            throw new Error(`Servicio con id ${id} no encontrado`);
-        }
-
-        const serviceToUpdate = {
-            ...service,
-            ...data,
-            id: Number(id)
-        };
-
-        await this.validateService(serviceToUpdate);
-
-        return this.repository.update(id, serviceToUpdate);
+        return updatedService;
 
     }
 }

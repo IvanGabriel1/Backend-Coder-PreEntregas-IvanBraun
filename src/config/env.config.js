@@ -1,8 +1,11 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-const config = {
+export const config = {
     port: Number(process.env.PORT) || 8080,
+    appName: process.env.APP_NAME || "Sistema Backend de Turnos y Reservas",
+    appEnv: process.env.NODE_ENV || "development",
+    mongoUri: process.env.MONGO_URI
 };
 
 if(!config.port) {
@@ -10,4 +13,8 @@ if(!config.port) {
     process.exit(1);   
 }
 
-export default config;
+if (!config.mongoUri) {
+ throw new Error('Falta configurar MONGO_URI en las variables de entorno');
+ }
+
+// export default config;

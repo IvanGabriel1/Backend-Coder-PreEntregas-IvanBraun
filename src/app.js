@@ -1,5 +1,4 @@
 import express from 'express';
-import config from './config/env.config.js';
 import servicesRouter from './routes/services.router.js';
 import bookingRouter from './routes/booking.router.js';
 
@@ -18,6 +17,4 @@ app.use("/api/services", servicesRouter);
 
 app.use("/api/bookings", bookingRouter);
 
-app.listen(config.port, () => {
-    console.log(`Servidor escuchando en http://localhost:${config.port}`);
-});
+

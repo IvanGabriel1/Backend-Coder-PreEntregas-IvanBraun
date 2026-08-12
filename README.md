@@ -2,17 +2,22 @@
 
 ## Descripción
 
-Este proyecto implementa una API REST para la gestión de servicios y reservas utilizando Node.js, Express, módulos ES (ESM), dotenv y persistencia de datos mediante archivos JSON.
+Este proyecto implementa una API REST para la gestión de servicios y reservas utilizando **Node.js, Express, Mongoose y MongoDB Atlas**.
 
 La aplicación permite administrar servicios mediante operaciones CRUD y gestionar reservas asociando servicios a cada reserva.
 
-La API está organizada mediante una arquitectura en capas separando responsabilidades entre:
+En esta etapa se migró la persistencia de datos desde archivos JSON hacia **MongoDB Atlas**, utilizando **Mongoose** como ODM (Object Document Mapper).
 
-- **Routers**
-- **Controllers**
-- **Services**
-- **Repositories**
-- **DAO**
+La API mantiene los endpoints y el comportamiento externo de la etapa anterior, modificando únicamente la forma en que los datos son almacenados y consultados internamente.
+
+La aplicación está organizada mediante una arquitectura en capas separando responsabilidades entre:
+
+* **Routers**
+* **Controllers**
+* **Services**
+* **Repositories**
+* **DAO**
+* **Models**
 
 Esta estructura permite mantener el código organizado, escalable y desacoplado de la fuente de persistencia.
 
@@ -20,11 +25,12 @@ Esta estructura permite mantener el código organizado, escalable y desacoplado 
 
 # Tecnologías utilizadas
 
-- Node.js
-- Express
-- dotenv
-- ES Modules (ESM)
-- fs/promises
+* Node.js
+* Express
+* Mongoose
+* MongoDB Atlas
+* dotenv
+* ES Modules (ESM)
 
 ---
 
@@ -60,7 +66,7 @@ npm run dev
 
 El servidor se ejecutará en:
 
-```
+```text
 http://localhost:8080
 ```
 
@@ -68,24 +74,29 @@ http://localhost:8080
 
 # Variables de entorno
 
+La aplicación utiliza variables de entorno para configurar el puerto, el entorno de ejecución y la conexión con MongoDB Atlas.
+
 Crear un archivo `.env` en la raíz del proyecto:
 
 ```env
 PORT=8080
 NODE_ENV=development
+MONGO_URI=mongodb+srv://<usuario>:<password>@<cluster>.mongodb.net/<database>
 ```
 
 También se incluye un archivo `.env.example` como referencia.
+
+**No se debe subir el archivo `.env` al repositorio**, ya que puede contener credenciales sensibles.
 
 ---
 
 # Estructura del proyecto
 
-```
+```text
 src/
 │
 ├── config/
-│   └── env.config.js
+│   ├── env.config.js
 │   └── index.js
 │
 ├── controllers/
@@ -101,13 +112,14 @@ src/
 │   └── bookings.repository.js
 │
 ├── dao/
-│   └── fileSystem/
-│       ├── services.dao.js
-│       └── bookings.dao.js
+│   └── mongo/
+│       ├── services.mongo.dao.js
+│       └── bookings.mongo.dao.js
 │
-├── data/
-│   ├── services.json
-│   └── bookings.json
+├── models/
+│   ├── service.model.js
+│   ├── booking.model.js
+│   └── message.model.js
 │
 ├── routes/
 │   ├── services.router.js
@@ -123,7 +135,7 @@ src/
 
 El flujo de una petición sigue la siguiente estructura:
 
-```
+```text
 Cliente
    |
    ▼
@@ -142,7 +154,10 @@ Repository
 DAO
    |
    ▼
-Archivo JSON
+Model de Mongoose
+   |
+   ▼
+MongoDB Atlas
 ```
 
 ---
@@ -159,12 +174,12 @@ Define los endpoints disponibles y deriva cada petición al controller correspon
 
 Se encarga de manejar la comunicación HTTP:
 
-- Recibe `req.params`.
-- Recibe `req.query`.
-- Recibe `req.body`.
-- Devuelve respuestas mediante `res`.
+* Recibe `req.params`.
+* Recibe `req.query`.
+* Recibe `req.body`.
+* Devuelve respuestas mediante `res`.
 
-No contiene lógica de negocio ni acceso directo a datos.
+No contiene lógica de negocio ni acceso directo a MongoDB.
 
 ---
 
@@ -172,14 +187,12 @@ No contiene lógica de negocio ni acceso directo a datos.
 
 Contiene la lógica de negocio de la aplicación:
 
-- Validaciones.
-- Reglas del sistema.
-- Coordinación entre recursos.
-- Preparación de datos antes de persistir.
+* Validaciones.
+* Reglas del sistema.
+* Coordinación entre recursos.
+* Preparación de datos antes de persistir.
 
-Ejemplo:
-
-Si un servicio ya existe dentro de una reserva, se incrementa automáticamente su cantidad.
+Por ejemplo, cuando un servicio se agrega nuevamente a una reserva, se incrementa su cantidad en lugar de crear una nueva entrada para el mismo servicio.
 
 ---
 
@@ -187,43 +200,66 @@ Si un servicio ya existe dentro de una reserva, se incrementa automáticamente s
 
 Funciona como intermediario entre los Services y los DAO.
 
-Su responsabilidad es abstraer la fuente de datos permitiendo cambiar la persistencia sin modificar la lógica de negocio.
+Su responsabilidad es abstraer el acceso a los datos, permitiendo que la lógica de negocio no dependa directamente de Mongoose.
 
 ---
 
 ### DAO (Data Access Object)
 
-Se encarga únicamente del acceso a los datos.
+Se encarga exclusivamente del acceso a los datos mediante Mongoose.
 
-Actualmente utiliza archivos JSON mediante `fs/promises`.
-
----
-
-# Configuración
-
-El archivo:
-
-```
-src/config/index.js
-```
-
-se encarga de crear e inicializar las instancias necesarias:
-
-- DAO.
-- Repository.
-- Services.
-
-Permitiendo inyectar dependencias entre capas.
+Los DAO utilizan los modelos definidos en la carpeta `models` para realizar operaciones sobre MongoDB.
 
 ---
 
-# Recurso: Services
+### Models
 
-Cada servicio posee la siguiente estructura:
+Los modelos definen los esquemas utilizados por Mongoose para representar los documentos almacenados en MongoDB.
+
+Se implementaron los siguientes modelos:
+
+* `service.model.js`
+* `booking.model.js`
+* `message.model.js`
+
+---
+
+# Configuración de MongoDB
+
+La conexión con MongoDB Atlas se realiza mediante la variable de entorno:
+
+```env
+MONGO_URI
+```
+
+La aplicación utiliza Mongoose para establecer la conexión y realizar las operaciones de persistencia.
+
+Los datos dejan de almacenarse en archivos JSON y pasan a almacenarse en colecciones de MongoDB.
+
+Las principales colecciones utilizadas son:
+
+```text
+services
+bookings
+```
+
+El modelo de mensajes también se encuentra definido mediante Mongoose:
+
+```text
+messages
+```
+
+---
+
+# Modelo: Services
+
+Los servicios se almacenan como documentos de MongoDB.
+
+Ejemplo:
 
 ```json
 {
-  "id": 1,
+  "_id": "68a123456789abcdef123456",
   "name": "Consulta médica",
   "description": "Consulta clínica general",
   "duration": 30,
@@ -232,6 +268,8 @@ Cada servicio posee la siguiente estructura:
   "available": true
 }
 ```
+
+El campo `_id` es generado automáticamente por MongoDB y utiliza el tipo `ObjectId`.
 
 ---
 
@@ -265,6 +303,14 @@ GET /api/services?category=Salud&available=true
 GET /api/services/:sid
 ```
 
+El parámetro `sid` corresponde al `_id` generado por MongoDB.
+
+Ejemplo:
+
+```http
+GET /api/services/68a123456789abcdef123456
+```
+
 ---
 
 ## Crear servicio
@@ -286,7 +332,7 @@ Body:
 }
 ```
 
-El ID se genera automáticamente.
+El `_id` se genera automáticamente mediante MongoDB.
 
 ---
 
@@ -294,6 +340,19 @@ El ID se genera automáticamente.
 
 ```http
 PUT /api/services/:sid
+```
+
+Ejemplo de body:
+
+```json
+{
+  "name": "Masaje relajante",
+  "description": "Masaje corporal relajante",
+  "duration": 60,
+  "price": 28000,
+  "category": "Bienestar",
+  "available": true
+}
 ```
 
 ---
@@ -308,13 +367,15 @@ Un servicio no puede eliminarse si se encuentra asociado a una reserva activa.
 
 ---
 
-# Recurso: Bookings
+# Modelo: Bookings
 
-Cada reserva posee la siguiente estructura:
+Cada reserva se almacena como un documento de MongoDB.
+
+Ejemplo:
 
 ```json
 {
-  "id": 1,
+  "_id": "68a987654321abcdef654321",
   "clientName": "Ivan Braun",
   "clientEmail": "ivan@gmail.com",
   "date": "2026-07-30",
@@ -324,14 +385,26 @@ Cada reserva posee la siguiente estructura:
 }
 ```
 
-Los servicios asociados se almacenan:
+El campo `_id` es generado automáticamente por MongoDB mediante `ObjectId`.
+
+---
+
+## Servicios asociados a una reserva
+
+Los servicios asociados a una reserva se almacenan mediante referencias a documentos de la colección `services`.
+
+La estructura utilizada es:
 
 ```json
 {
-  "service": 2,
+  "service": "68a123456789abcdef123456",
   "quantity": 1
 }
 ```
+
+El campo `service` contiene el `ObjectId` correspondiente al servicio, en lugar de almacenar el objeto completo del servicio.
+
+Esto permite mantener una relación entre las colecciones `bookings` y `services`.
 
 ---
 
@@ -343,12 +416,33 @@ Los servicios asociados se almacenan:
 POST /api/bookings
 ```
 
+Ejemplo:
+
+```json
+{
+  "clientName": "Ivan Braun",
+  "clientEmail": "ivan@gmail.com",
+  "date": "2026-07-30",
+  "time": "15:30",
+  "status": "pendiente",
+  "services": []
+}
+```
+
 ---
 
 ## Obtener reserva por ID
 
 ```http
 GET /api/bookings/:bid
+```
+
+El parámetro `bid` corresponde al `_id` generado por MongoDB.
+
+Ejemplo:
+
+```http
+GET /api/bookings/68a987654321abcdef654321
 ```
 
 ---
@@ -359,19 +453,55 @@ GET /api/bookings/:bid
 POST /api/bookings/:bid/services/:sid
 ```
 
-Regla de negocio:
+Donde:
+
+* `bid` corresponde al `_id` de la reserva.
+* `sid` corresponde al `_id` del servicio.
+
+Ejemplo:
+
+```http
+POST /api/bookings/68a987654321abcdef654321/services/68a123456789abcdef123456
+```
+
+### Regla de negocio
 
 Si el mismo servicio se agrega nuevamente dentro de una reserva, se incrementa automáticamente el campo:
 
 ```json
-quantity
+{
+  "quantity": 2
+}
 ```
 
 Esta lógica se encuentra implementada en:
 
-```
+```text
 bookings.service.js
 ```
+
+---
+
+# Modelo: Messages
+
+Se incluye un modelo de Mongoose para mensajes:
+
+```text
+models/message.model.js
+```
+
+El modelo contiene los siguientes campos:
+
+```json
+{
+  "user": "Ivan",
+  "message": "Quisiera consultar por un turno"
+}
+```
+
+Además, utiliza `timestamps` para registrar automáticamente las fechas de creación y actualización.
+
+En esta etapa no se implementan endpoints para `messages`, ya que la consigna mantiene como endpoints requeridos únicamente los correspondientes a `services` y `bookings`.
 
 ---
 
@@ -421,19 +551,91 @@ addServiceToBooking()
 
 ---
 
+# Persistencia
+
+La persistencia fue migrada desde:
+
+```text
+FileSystem → archivos JSON
+```
+
+hacia:
+
+```text
+MongoDB Atlas → Mongoose
+```
+
+Los DAO anteriores basados en `fs/promises` fueron reemplazados por DAO específicos para MongoDB.
+
+Por ejemplo:
+
+```js
+ServiceModel.find()
+```
+
+```js
+ServiceModel.findById(id)
+```
+
+```js
+ServiceModel.create(data)
+```
+
+```js
+ServiceModel.findByIdAndUpdate(id, data)
+```
+
+```js
+ServiceModel.findByIdAndDelete(id)
+```
+
+---
+
 # Características implementadas
 
-- CRUD completo de servicios.
-- Gestión de reservas.
-- Arquitectura en capas.
-- Separación de responsabilidades.
-- Persistencia mediante archivos JSON utilizando `fs/promises`.
-- Inyección de dependencias mediante configuración centralizada.
-- IDs generados automáticamente.
-- Validación de datos.
-- Manejo de errores HTTP (400, 404 y 500).
-- Uso de `req.params`, `req.query` y `req.body`.
-- Organización mediante Express Router.
-- Reglas de negocio implementadas dentro de Services.
-- Acceso a datos aislado mediante DAO.
-- Repositories como capa intermedia entre lógica de negocio y persistencia.
+* CRUD completo de servicios.
+* Gestión de reservas.
+* Arquitectura en capas.
+* Separación de responsabilidades.
+* Persistencia mediante MongoDB Atlas.
+* Uso de Mongoose como ODM.
+* Modelos de Mongoose para `services`, `bookings` y `messages`.
+* Referencias entre reservas y servicios mediante `ObjectId`.
+* Inyección de dependencias mediante configuración centralizada.
+* IDs generados automáticamente por MongoDB.
+* Validación de datos.
+* Manejo de errores HTTP.
+* Uso de `req.params`, `req.query` y `req.body`.
+* Organización mediante Express Router.
+* Reglas de negocio implementadas dentro de Services.
+* Acceso a datos aislado mediante DAO.
+* Repositories como capa intermedia entre lógica de negocio y persistencia.
+* Variables de entorno para la conexión con MongoDB Atlas.
+
+---
+
+# Seguridad
+
+El archivo `.env` contiene información sensible, como las credenciales y la URI de conexión a MongoDB Atlas.
+
+Por este motivo:
+
+* `.env` no debe subirse al repositorio.
+* `node_modules` no debe subirse al repositorio.
+* Se incluye `.env.example` como referencia para configurar el proyecto.
+
+Ejemplo:
+
+```env
+PORT=8080
+NODE_ENV=development
+MONGO_URI=
+```
+
+---
+
+# Autor
+
+**Ivan Braun**
+
+Proyecto desarrollado como parte del curso de Backend.
