@@ -1,0 +1,38 @@
+<h1>Servicios disponibles</h1>
+
+{{#if services.length}} 
+
+  {{#each services}}
+    <article id="service-{{_id}}">
+      <h2>{{name}}</h2>
+      <p>{{description}}</p>
+      <p>Duración: {{duration}} minutos</p>
+      <p>Precio: ${{price}}</p>
+      <p>Categoría: {{category}}</p>
+
+      <p class="badge">
+        Disponible: <span class="availability">{{available}}</span>
+      </p>
+
+      <button
+        class="change-availability"
+        data-id="{{_id}}"
+        data-name="{{name}}"
+        data-description="{{description}}"
+        data-duration="{{duration}}"
+        data-price="{{price}}"
+        data-category="{{category}}"
+        data-available="{{available}}">
+        Cambiar disponibilidad
+      </button>
+    </article>
+  {{/each}}
+
+{{else}}
+
+  <p>No hay servicios cargados.</p>
+
+{{/if}}
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/socket.js"></script>

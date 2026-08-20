@@ -73,7 +73,7 @@ export class ServicesService {
 
         const services = await this.repository.getAll();
 
-        const exists = services.find(service => service.name.toLowerCase() === name.toLowerCase() && service.id !== Number(id) );
+        const exists = services.find(service => service.name.toLowerCase() === name.toLowerCase() && !service._id.equals(id)) ;
 
         if (exists) {
             throw new Error("Ya existe un servicio con ese nombre");
@@ -100,9 +100,27 @@ export class ServicesService {
     
    async delete(id) {
 
+     const bookings = await this.bookingRepository.getAll();
+
+    const bookingUsingService = bookings.find(
+        booking =>
+            booking.status !== "cancelada" &&
+            booking.services.some(
+                s => s.service.toString() === id.toString()
+            )
+    );
+
+    if (bookingUsingService) {
+        const error = new Error(
+            "No se puede eliminar el servicio porque está asociado a una reserva activa"
+        );
+        error.statusCode = 400;
+        throw error;
+    }
+
     const deletedService = await this.repository.delete(id);
 
-    if(!deletedService) {
+    if (!deletedService) {
         const error = new Error("Servicio no encontrado");
         error.statusCode = 404;
         throw error;
@@ -110,30 +128,6 @@ export class ServicesService {
 
     return deletedService;
 
-    // if (!service) {
-    //     const error = new Error("Servicio no encontrado");
-    //     error.statusCode = 404;
-    //     throw error;
-    // }
-    
-    
-    // const bookings = await this.bookingRepository.getAll(id);
-
-    // const bookingUsingService = bookings.find(booking =>
-    //     booking.status !== "cancelada" &&
-    //     booking.services.some(
-    //         s => s.service === Number(id)
-    //     )
-    // );
-
-    // if (bookingUsingService) {
-    //     const error = new Error("No se puede eliminar el servicio porque está asociado a una reserva activa")
-    //     error.statusCode = 400;
-    //     throw error;
-    // }
-
-
-    // return this.repository.delete(id);
    }
 
     async getServices(category, available) {

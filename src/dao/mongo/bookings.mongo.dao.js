@@ -2,7 +2,7 @@ import { BookingModel } from "../../models/booking.model.js";
 
 export class BookingsMongoDao { 
     async getAll() {
-        return BookingModel.find();
+        return BookingModel.find().lean();
     }
 
     async getById(id) {

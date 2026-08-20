@@ -1,0 +1,35 @@
+<h1>Reservas</h1>
+
+{{#if bookings.length}}
+
+  {{#each bookings}}
+    <article>
+      <h2>Reserva de {{clientName}}</h2>
+
+      <p>ID: {{_id}}</p>
+      <p>Email: {{clientEmail}}</p>
+      <p>Fecha: {{date}}</p>
+      <p>Hora: {{time}}</p>
+      <p>Estado: {{status}}</p>
+
+      {{#if services.length}}
+        <h3>Servicios:</h3>
+
+        <ul>
+          {{#each services}}
+            <li>
+              Servicio: {{service}}
+              Cantidad: {{quantity}}
+            </li>
+          {{/each}}
+        </ul>
+      {{/if}}
+    </article>
+  {{/each}}
+
+{{else}}
+  <p>No hay reservas cargadas.</p>
+{{/if}}
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/socket.js"></script>

@@ -75,3 +75,30 @@ export const addServiceToBooking = async (req, res) => {
       })
     }
 }
+
+export const getAllBookings = async (req, res) => {
+   try {
+      
+
+       const bookings = await bookingService.getAllBookings();
+
+      res.status(200).json({
+        status: 'success',
+        payload: bookings
+      });
+
+    } catch (error) {
+
+         if (error.message === "no encontrada") {
+            return res.status(404).json({
+                status: 'error',
+                message: error.message
+            });
+        }
+
+        res.status(500).json({
+            status: 'error',
+            message: error.message
+        });
+    }
+}

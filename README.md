@@ -6,18 +6,18 @@ Este proyecto implementa una API REST para la gestión de servicios y reservas u
 
 La aplicación permite administrar servicios mediante operaciones CRUD y gestionar reservas asociando servicios a cada reserva.
 
-En esta etapa se migró la persistencia de datos desde archivos JSON hacia **MongoDB Atlas**, utilizando **Mongoose** como ODM (Object Document Mapper).
+Además de la API REST, el proyecto incorpora **vistas server-side con Handlebars** y **comunicación en tiempo real mediante Socket.IO**, manteniendo la API existente y la arquitectura en capas.
 
-La API mantiene los endpoints y el comportamiento externo de la etapa anterior, modificando únicamente la forma en que los datos son almacenados y consultados internamente.
+La persistencia de datos se realiza mediante **MongoDB Atlas**, utilizando **Mongoose** como ODM (Object Document Mapper).
 
-La aplicación está organizada mediante una arquitectura en capas separando responsabilidades entre:
+La aplicación está organizada mediante una arquitectura en capas que separa responsabilidades entre:
 
-* **Routers**
-* **Controllers**
-* **Services**
-* **Repositories**
-* **DAO**
-* **Models**
+- **Routers**
+- **Controllers**
+- **Services**
+- **Repositories**
+- **DAO**
+- **Models**
 
 Esta estructura permite mantener el código organizado, escalable y desacoplado de la fuente de persistencia.
 
@@ -25,12 +25,14 @@ Esta estructura permite mantener el código organizado, escalable y desacoplado 
 
 # Tecnologías utilizadas
 
-* Node.js
-* Express
-* Mongoose
-* MongoDB Atlas
-* dotenv
-* ES Modules (ESM)
+- Node.js
+- Express
+- Express Handlebars
+- Socket.IO
+- Mongoose
+- MongoDB Atlas
+- dotenv
+- ES Modules (ESM)
 
 ---
 
@@ -80,7 +82,9 @@ Crear un archivo `.env` en la raíz del proyecto:
 
 ```env
 PORT=8080
+
 NODE_ENV=development
+
 MONGO_URI=mongodb+srv://<usuario>:<password>@<cluster>.mongodb.net/<database>
 ```
 
@@ -97,11 +101,13 @@ src/
 │
 ├── config/
 │   ├── env.config.js
+│   ├── database.config.js
 │   └── index.js
 │
 ├── controllers/
 │   ├── services.controller.js
-│   └── bookings.controller.js
+│   ├── bookings.controller.js
+│   └── views.controller.js
 │
 ├── services/
 │   ├── services.service.js
@@ -113,17 +119,33 @@ src/
 │
 ├── dao/
 │   └── mongo/
-│       ├── services.mongo.dao.js
-│       └── bookings.mongo.dao.js
+│   |   ├── services.mongo.dao.js
+│   |   └── bookings.mongo.dao.js
+|    ── fileSystem/
+│       ├── services.dao.js
+│       └── bookings.dao.js
 │
 ├── models/
-│   ├── service.model.js
+│   ├── services.model.js
 │   ├── booking.model.js
 │   └── message.model.js
 │
 ├── routes/
 │   ├── services.router.js
-│   └── bookings.router.js
+│   ├── booking.router.js
+│   └── views.router.js
+│
+├── views/
+│   ├── layouts/
+│   │   └── main.handlebars
+│   ├── services.handlebars
+│   └── bookings.handlebars
+│
+├── public/
+│   ├── css/
+│   │   └── styles.css
+│   └── js/
+│       └── socket.js
 │
 ├── app.js
 └── server.js
@@ -133,7 +155,7 @@ src/
 
 # Arquitectura de la API
 
-El flujo de una petición sigue la siguiente estructura:
+El flujo de una petición de la API REST sigue la siguiente estructura:
 
 ```text
 Cliente
@@ -162,41 +184,41 @@ MongoDB Atlas
 
 ---
 
-## Responsabilidad de cada capa
+# Responsabilidad de cada capa
 
-### Router
+## Router
 
 Define los endpoints disponibles y deriva cada petición al controller correspondiente.
 
 ---
 
-### Controller
+## Controller
 
 Se encarga de manejar la comunicación HTTP:
 
-* Recibe `req.params`.
-* Recibe `req.query`.
-* Recibe `req.body`.
-* Devuelve respuestas mediante `res`.
+- Recibe `req.params`.
+- Recibe `req.query`.
+- Recibe `req.body`.
+- Devuelve respuestas mediante `res`.
 
 No contiene lógica de negocio ni acceso directo a MongoDB.
 
 ---
 
-### Service
+## Service
 
 Contiene la lógica de negocio de la aplicación:
 
-* Validaciones.
-* Reglas del sistema.
-* Coordinación entre recursos.
-* Preparación de datos antes de persistir.
+- Validaciones.
+- Reglas del sistema.
+- Coordinación entre recursos.
+- Preparación de datos antes de persistir.
 
 Por ejemplo, cuando un servicio se agrega nuevamente a una reserva, se incrementa su cantidad en lugar de crear una nueva entrada para el mismo servicio.
 
 ---
 
-### Repository
+## Repository
 
 Funciona como intermediario entre los Services y los DAO.
 
@@ -204,7 +226,7 @@ Su responsabilidad es abstraer el acceso a los datos, permitiendo que la lógica
 
 ---
 
-### DAO (Data Access Object)
+## DAO (Data Access Object)
 
 Se encarga exclusivamente del acceso a los datos mediante Mongoose.
 
@@ -212,64 +234,246 @@ Los DAO utilizan los modelos definidos en la carpeta `models` para realizar oper
 
 ---
 
-### Models
+## Models
 
 Los modelos definen los esquemas utilizados por Mongoose para representar los documentos almacenados en MongoDB.
 
 Se implementaron los siguientes modelos:
 
-* `service.model.js`
-* `booking.model.js`
-* `message.model.js`
+- `services.model.js`
+- `booking.model.js`
+- `message.model.js`
 
 ---
 
-# Configuración de MongoDB
+# Vistas con Handlebars
 
-La conexión con MongoDB Atlas se realiza mediante la variable de entorno:
+Se incorporó **Express Handlebars** como motor de vistas server-side.
 
-```env
-MONGO_URI
-```
+Las vistas utilizan los mismos Services, Repositories y DAO que la API REST, evitando duplicar la lógica de acceso a datos.
 
-La aplicación utiliza Mongoose para establecer la conexión y realizar las operaciones de persistencia.
-
-Los datos dejan de almacenarse en archivos JSON y pasan a almacenarse en colecciones de MongoDB.
-
-Las principales colecciones utilizadas son:
+El flujo de una vista es:
 
 ```text
-services
-bookings
+Navegador
+   |
+   ▼
+Views Router
+   |
+   ▼
+Views Controller
+   |
+   ▼
+Service
+   |
+   ▼
+Repository
+   |
+   ▼
+DAO
+   |
+   ▼
+MongoDB Atlas
+   |
+   ▼
+Views Controller
+   |
+   ▼
+Handlebars
+   |
+   ▼
+HTML
 ```
 
-El modelo de mensajes también se encuentra definido mediante Mongoose:
+## Vista de servicios
+
+```http
+GET /views/services
+```
+
+Renderiza el listado de servicios almacenados en MongoDB.
+
+La vista muestra:
+
+- Nombre
+- Descripción
+- Duración
+- Precio
+- Categoría
+- Disponibilidad
+
+La información no está hardcodeada y es obtenida mediante la arquitectura en capas existente.
+
+---
+
+## Vista de reservas
+
+```http
+GET /views/bookings
+```
+
+Renderiza las reservas almacenadas en MongoDB.
+
+La vista muestra información como:
+
+- ID
+- Cliente
+- Email
+- Fecha
+- Hora
+- Estado
+- Servicios asociados
+- Cantidad de cada servicio
+
+---
+
+# Layout principal
+
+Las vistas utilizan un layout compartido:
 
 ```text
-messages
+src/views/layouts/main.handlebars
+```
+
+El layout contiene la estructura HTML general, navegación y referencia a los archivos CSS.
+
+Las vistas específicas se insertan mediante:
+
+```handlebars
+{{{body}}}
 ```
 
 ---
 
-# Modelo: Services
+# Archivos públicos
 
-Los servicios se almacenan como documentos de MongoDB.
+Los archivos estáticos se encuentran dentro de:
 
-Ejemplo:
-
-```json
-{
-  "_id": "68a123456789abcdef123456",
-  "name": "Consulta médica",
-  "description": "Consulta clínica general",
-  "duration": 30,
-  "price": 12000,
-  "category": "Salud",
-  "available": true
-}
+```text
+src/public/
 ```
 
-El campo `_id` es generado automáticamente por MongoDB y utiliza el tipo `ObjectId`.
+La aplicación expone esta carpeta mediante Express.
+
+## CSS
+
+```text
+src/public/css/styles.css
+```
+
+Contiene los estilos utilizados por las vistas.
+
+## JavaScript
+
+```text
+src/public/js/socket.js
+```
+
+Contiene la lógica del cliente para la comunicación mediante Socket.IO.
+
+---
+
+# Comunicación en tiempo real con Socket.IO
+
+Se incorporó **Socket.IO** para permitir actualizaciones en tiempo real sin necesidad de recargar la página.
+
+La funcionalidad implementada consiste en **cambiar la disponibilidad de un servicio desde la vista de servicios**.
+
+## Flujo
+
+```text
+Usuario
+   |
+   | Click en "Cambiar disponibilidad"
+   ▼
+socket.js
+   |
+   | socket.emit("change-availability")
+   ▼
+Socket.IO Server
+   |
+   ▼
+ServicesService
+   |
+   ▼
+Repository
+   |
+   ▼
+DAO
+   |
+   ▼
+MongoDB Atlas
+```
+
+Una vez actualizado el servicio en MongoDB, el servidor emite:
+
+```js
+io.emit("service-updated", updatedService);
+```
+
+Todos los clientes conectados reciben el evento.
+
+```text
+MongoDB
+   |
+   ▼
+server.js
+   |
+   | service-updated
+   ▼
+socket.js
+   |
+   ▼
+HTML actualizado
+```
+
+De esta manera, la disponibilidad del servicio cambia en el navegador **sin recargar la página**.
+
+---
+
+# Evento de Socket.IO
+
+## Cliente → servidor
+
+El cliente emite:
+
+```js
+socket.emit("change-availability", service);
+```
+
+El servidor recibe el evento:
+
+```js
+socket.on("change-availability", async (service) => {
+    // actualización del servicio
+});
+```
+
+---
+
+## Servidor → clientes
+
+Después de actualizar MongoDB:
+
+```js
+io.emit("service-updated", updatedService);
+```
+
+El cliente escucha:
+
+```js
+socket.on("service-updated", (service) => {
+    // actualización de la vista
+});
+```
+
+---
+
+# API REST
+
+La incorporación de Handlebars y Socket.IO **no reemplaza la API REST existente**.
+
+Las rutas `/api/...` continúan funcionando de forma independiente.
 
 ---
 
@@ -323,12 +527,12 @@ Body:
 
 ```json
 {
-  "name": "Masaje",
-  "description": "Masaje relajante",
-  "duration": 60,
-  "price": 25000,
-  "category": "Bienestar",
-  "available": true
+    "name": "Masaje",
+    "description": "Masaje relajante",
+    "duration": 60,
+    "price": 25000,
+    "category": "Bienestar",
+    "available": true
 }
 ```
 
@@ -342,16 +546,16 @@ El `_id` se genera automáticamente mediante MongoDB.
 PUT /api/services/:sid
 ```
 
-Ejemplo de body:
+Ejemplo:
 
 ```json
 {
-  "name": "Masaje relajante",
-  "description": "Masaje corporal relajante",
-  "duration": 60,
-  "price": 28000,
-  "category": "Bienestar",
-  "available": true
+    "name": "Masaje relajante",
+    "description": "Masaje corporal relajante",
+    "duration": 60,
+    "price": 28000,
+    "category": "Bienestar",
+    "available": true
 }
 ```
 
@@ -375,13 +579,13 @@ Ejemplo:
 
 ```json
 {
-  "_id": "68a987654321abcdef654321",
-  "clientName": "Ivan Braun",
-  "clientEmail": "ivan@gmail.com",
-  "date": "2026-07-30",
-  "time": "15:30",
-  "status": "pendiente",
-  "services": []
+    "_id": "68a987654321abcdef654321",
+    "clientName": "Ivan Braun",
+    "clientEmail": "ivan@gmail.com",
+    "date": "2026-07-30",
+    "time": "15:30",
+    "status": "pendiente",
+    "services": []
 }
 ```
 
@@ -389,7 +593,7 @@ El campo `_id` es generado automáticamente por MongoDB mediante `ObjectId`.
 
 ---
 
-## Servicios asociados a una reserva
+# Servicios asociados a una reserva
 
 Los servicios asociados a una reserva se almacenan mediante referencias a documentos de la colección `services`.
 
@@ -397,12 +601,12 @@ La estructura utilizada es:
 
 ```json
 {
-  "service": "68a123456789abcdef123456",
-  "quantity": 1
+    "service": "68a123456789abcdef123456",
+    "quantity": 1
 }
 ```
 
-El campo `service` contiene el `ObjectId` correspondiente al servicio, en lugar de almacenar el objeto completo del servicio.
+El campo `service` contiene el `ObjectId` correspondiente al servicio.
 
 Esto permite mantener una relación entre las colecciones `bookings` y `services`.
 
@@ -420,12 +624,12 @@ Ejemplo:
 
 ```json
 {
-  "clientName": "Ivan Braun",
-  "clientEmail": "ivan@gmail.com",
-  "date": "2026-07-30",
-  "time": "15:30",
-  "status": "pendiente",
-  "services": []
+    "clientName": "Ivan Braun",
+    "clientEmail": "ivan@gmail.com",
+    "date": "2026-07-30",
+    "time": "15:30",
+    "status": "pendiente",
+    "services": []
 }
 ```
 
@@ -439,12 +643,6 @@ GET /api/bookings/:bid
 
 El parámetro `bid` corresponde al `_id` generado por MongoDB.
 
-Ejemplo:
-
-```http
-GET /api/bookings/68a987654321abcdef654321
-```
-
 ---
 
 ## Agregar servicio a una reserva
@@ -455,14 +653,8 @@ POST /api/bookings/:bid/services/:sid
 
 Donde:
 
-* `bid` corresponde al `_id` de la reserva.
-* `sid` corresponde al `_id` del servicio.
-
-Ejemplo:
-
-```http
-POST /api/bookings/68a987654321abcdef654321/services/68a123456789abcdef123456
-```
+- `bid` corresponde al `_id` de la reserva.
+- `sid` corresponde al `_id` del servicio.
 
 ### Regla de negocio
 
@@ -470,7 +662,7 @@ Si el mismo servicio se agrega nuevamente dentro de una reserva, se incrementa a
 
 ```json
 {
-  "quantity": 2
+    "quantity": 2
 }
 ```
 
@@ -494,14 +686,14 @@ El modelo contiene los siguientes campos:
 
 ```json
 {
-  "user": "Ivan",
-  "message": "Quisiera consultar por un turno"
+    "user": "Ivan",
+    "message": "Quisiera consultar por un turno"
 }
 ```
 
 Además, utiliza `timestamps` para registrar automáticamente las fechas de creación y actualización.
 
-En esta etapa no se implementan endpoints para `messages`, ya que la consigna mantiene como endpoints requeridos únicamente los correspondientes a `services` y `bookings`.
+En esta etapa no se implementan endpoints para `messages`.
 
 ---
 
@@ -524,11 +716,11 @@ createService()
 ```
 
 ```js
-updateService()
+update()
 ```
 
 ```js
-deleteService()
+delete()
 ```
 
 ---
@@ -539,6 +731,10 @@ Métodos principales:
 
 ```js
 createBooking()
+```
+
+```js
+getAllBookings()
 ```
 
 ```js
@@ -567,7 +763,7 @@ MongoDB Atlas → Mongoose
 
 Los DAO anteriores basados en `fs/promises` fueron reemplazados por DAO específicos para MongoDB.
 
-Por ejemplo:
+Ejemplos de operaciones utilizadas:
 
 ```js
 ServiceModel.find()
@@ -593,24 +789,46 @@ ServiceModel.findByIdAndDelete(id)
 
 # Características implementadas
 
-* CRUD completo de servicios.
-* Gestión de reservas.
-* Arquitectura en capas.
-* Separación de responsabilidades.
-* Persistencia mediante MongoDB Atlas.
-* Uso de Mongoose como ODM.
-* Modelos de Mongoose para `services`, `bookings` y `messages`.
-* Referencias entre reservas y servicios mediante `ObjectId`.
-* Inyección de dependencias mediante configuración centralizada.
-* IDs generados automáticamente por MongoDB.
-* Validación de datos.
-* Manejo de errores HTTP.
-* Uso de `req.params`, `req.query` y `req.body`.
-* Organización mediante Express Router.
-* Reglas de negocio implementadas dentro de Services.
-* Acceso a datos aislado mediante DAO.
-* Repositories como capa intermedia entre lógica de negocio y persistencia.
-* Variables de entorno para la conexión con MongoDB Atlas.
+- CRUD completo de servicios.
+- Gestión de reservas.
+- Arquitectura en capas.
+- Separación de responsabilidades.
+- Persistencia mediante MongoDB Atlas.
+- Uso de Mongoose como ODM.
+- Modelos de Mongoose para `services`, `bookings` y `messages`.
+- Referencias entre reservas y servicios mediante `ObjectId`.
+- Inyección de dependencias mediante configuración centralizada.
+- IDs generados automáticamente por MongoDB.
+- Validación de datos.
+- Manejo de errores HTTP.
+- Uso de `req.params`, `req.query` y `req.body`.
+- Organización mediante Express Router.
+- Reglas de negocio implementadas dentro de Services.
+- Acceso a datos aislado mediante DAO.
+- Repositories como capa intermedia entre lógica de negocio y persistencia.
+- Variables de entorno para la conexión con MongoDB Atlas.
+- Vistas server-side mediante Express Handlebars.
+- Layout compartido mediante Handlebars.
+- Archivos estáticos mediante Express.
+- Comunicación en tiempo real mediante Socket.IO.
+- Actualización de disponibilidad de servicios sin recargar la página.
+- La API REST continúa funcionando independientemente de las vistas.
+
+---
+
+# Correcciones y mejoras implementadas
+
+Durante el desarrollo se realizaron distintas mejoras sobre la aplicación:
+
+- Se agregó `getAll()` al DAO de bookings para permitir la consulta de todas las reservas.
+- Se implementó una validación para impedir eliminar servicios asociados a reservas activas.
+- Se migró la persistencia desde archivos JSON hacia MongoDB Atlas.
+- Se incorporó Express Handlebars para las vistas server-side.
+- Se incorporó Socket.IO para comunicación en tiempo real.
+- Se implementó el cambio de disponibilidad de servicios mediante Socket.IO.
+- Se mantuvo la arquitectura en capas existente.
+- Se mantuvo la API REST sin reemplazar sus endpoints.
+- Se agregaron archivos públicos para CSS y JavaScript.
 
 ---
 
@@ -620,9 +838,9 @@ El archivo `.env` contiene información sensible, como las credenciales y la URI
 
 Por este motivo:
 
-* `.env` no debe subirse al repositorio.
-* `node_modules` no debe subirse al repositorio.
-* Se incluye `.env.example` como referencia para configurar el proyecto.
+- `.env` no debe subirse al repositorio.
+- `node_modules` no debe subirse al repositorio.
+- Se incluye `.env.example` como referencia para configurar el proyecto.
 
 Ejemplo:
 

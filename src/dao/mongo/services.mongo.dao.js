@@ -1,8 +1,9 @@
 import { ServiceModel } from "../../models/services.model.js";
 
 export class ServicesMongoDao { 
+
     async getAll() {
-        return ServiceModel.find();
+        return ServiceModel.find().lean();
     }
 
     async getById(id) {

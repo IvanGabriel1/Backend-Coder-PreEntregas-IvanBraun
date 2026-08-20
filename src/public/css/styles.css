@@ -1,0 +1,52 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px;
+    background: #f7f7f7;
+    color: #222;
+}
+
+nav {
+    margin-bottom: 24px;
+}
+
+nav a {
+    margin-right: 12px;
+    color: #0f62fe;
+    text-decoration: none;
+}
+
+article,
+.card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #e8f4ea;
+}
+
+.error {
+    color: #b00020;
+}
+
+.change-availability {
+    margin-top: 10px;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    background: #0f62fe;
+    color: white;
+    cursor: pointer;
+}
+
+.change-availability:hover {
+    background: #0043ce;
+}

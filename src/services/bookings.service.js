@@ -136,4 +136,15 @@ export class BookingService {
            { services: booking.services }
         );
     }
+
+    async getAllBookings() {
+          const bookings = await this.repository.getAll();
+        if (!bookings) {
+           const error = new Error("No se encontro reservas");
+           error.statusCode = 404;
+           throw error; 
+        }
+       
+        return bookings;
+    }
 }
