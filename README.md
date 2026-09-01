@@ -12,12 +12,12 @@ La persistencia de datos se realiza mediante **MongoDB Atlas**, utilizando **Mon
 
 La aplicación está organizada mediante una arquitectura en capas que separa responsabilidades entre:
 
-- **Routers**
-- **Controllers**
-- **Services**
-- **Repositories**
-- **DAO**
-- **Models**
+* **Routers**
+* **Controllers**
+* **Services**
+* **Repositories**
+* **DAO**
+* **Models**
 
 Esta estructura permite mantener el código organizado, escalable y desacoplado de la fuente de persistencia.
 
@@ -25,14 +25,15 @@ Esta estructura permite mantener el código organizado, escalable y desacoplado 
 
 # Tecnologías utilizadas
 
-- Node.js
-- Express
-- Express Handlebars
-- Socket.IO
-- Mongoose
-- MongoDB Atlas
-- dotenv
-- ES Modules (ESM)
+* Node.js
+* Express
+* Express Handlebars
+* Socket.IO
+* Mongoose
+* MongoDB Atlas
+* Zod
+* dotenv
+* ES Modules (ESM)
 
 ---
 
@@ -82,9 +83,7 @@ Crear un archivo `.env` en la raíz del proyecto:
 
 ```env
 PORT=8080
-
 NODE_ENV=development
-
 MONGO_URI=mongodb+srv://<usuario>:<password>@<cluster>.mongodb.net/<database>
 ```
 
@@ -119,16 +118,17 @@ src/
 │
 ├── dao/
 │   └── mongo/
-│   |   ├── services.mongo.dao.js
-│   |   └── bookings.mongo.dao.js
-|    ── fileSystem/
-│       ├── services.dao.js
-│       └── bookings.dao.js
+│       ├── services.mongo.dao.js
+│       └── bookings.mongo.dao.js
 │
 ├── models/
 │   ├── services.model.js
 │   ├── booking.model.js
 │   └── message.model.js
+│
+├── schemas/
+│   ├── services.schema.js
+│   └── bookings.schema.js
 │
 ├── routes/
 │   ├── services.router.js
@@ -196,10 +196,10 @@ Define los endpoints disponibles y deriva cada petición al controller correspon
 
 Se encarga de manejar la comunicación HTTP:
 
-- Recibe `req.params`.
-- Recibe `req.query`.
-- Recibe `req.body`.
-- Devuelve respuestas mediante `res`.
+* Recibe `req.params`.
+* Recibe `req.query`.
+* Recibe `req.body`.
+* Devuelve respuestas mediante `res`.
 
 No contiene lógica de negocio ni acceso directo a MongoDB.
 
@@ -209,10 +209,10 @@ No contiene lógica de negocio ni acceso directo a MongoDB.
 
 Contiene la lógica de negocio de la aplicación:
 
-- Validaciones.
-- Reglas del sistema.
-- Coordinación entre recursos.
-- Preparación de datos antes de persistir.
+* Validaciones.
+* Reglas del sistema.
+* Coordinación entre recursos.
+* Preparación de datos antes de persistir.
 
 Por ejemplo, cuando un servicio se agrega nuevamente a una reserva, se incrementa su cantidad en lugar de crear una nueva entrada para el mismo servicio.
 
@@ -240,9 +240,50 @@ Los modelos definen los esquemas utilizados por Mongoose para representar los do
 
 Se implementaron los siguientes modelos:
 
-- `services.model.js`
-- `booking.model.js`
-- `message.model.js`
+* `services.model.js`
+* `booking.model.js`
+* `message.model.js`
+
+---
+
+# Validación de datos
+
+Se utiliza **Zod** para validar los datos recibidos por la API antes de procesarlos.
+
+Las validaciones se aplican principalmente sobre los datos recibidos mediante:
+
+* `req.body`
+* `req.params`
+
+Se validan aspectos como:
+
+* Campos obligatorios.
+* Tipos de datos.
+* Longitud de strings.
+* Valores numéricos.
+* Emails.
+* Fechas.
+* ObjectId válidos.
+* Cantidades mayores a cero.
+
+Para los identificadores de MongoDB se utiliza una validación mediante expresión regular para comprobar que tengan el formato correspondiente a un `ObjectId` de 24 caracteres hexadecimales.
+
+Cuando los datos no cumplen con el esquema definido, la API responde con código HTTP `400` y devuelve los errores de validación.
+
+Ejemplo:
+
+```json
+{
+    "status": "error",
+    "message": "Datos inválidos",
+    "errors": [
+        {
+            "path": ["price"],
+            "message": "El precio no puede ser negativo"
+        }
+    ]
+}
+```
 
 ---
 
@@ -295,12 +336,12 @@ Renderiza el listado de servicios almacenados en MongoDB.
 
 La vista muestra:
 
-- Nombre
-- Descripción
-- Duración
-- Precio
-- Categoría
-- Disponibilidad
+* Nombre
+* Descripción
+* Duración
+* Precio
+* Categoría
+* Disponibilidad
 
 La información no está hardcodeada y es obtenida mediante la arquitectura en capas existente.
 
@@ -316,14 +357,14 @@ Renderiza las reservas almacenadas en MongoDB.
 
 La vista muestra información como:
 
-- ID
-- Cliente
-- Email
-- Fecha
-- Hora
-- Estado
-- Servicios asociados
-- Cantidad de cada servicio
+* ID
+* Cliente
+* Email
+* Fecha
+* Hora
+* Estado
+* Servicios asociados
+* Cantidad de cada servicio
 
 ---
 
@@ -485,18 +526,71 @@ Las rutas `/api/...` continúan funcionando de forma independiente.
 GET /api/services
 ```
 
-Permite filtrar mediante query params:
+Permite utilizar parámetros de consulta para filtrar, paginar y ordenar los resultados.
+
+### Filtrar por categoría
 
 ```http
 GET /api/services?category=Salud
 ```
 
+### Filtrar por disponibilidad
+
 ```http
 GET /api/services?available=true
 ```
 
+### Combinar filtros
+
 ```http
 GET /api/services?category=Salud&available=true
+```
+
+### Paginación
+
+```http
+GET /api/services?page=1&limit=10
+```
+
+### Ordenamiento
+
+```http
+GET /api/services?sortBy=price&order=desc
+```
+
+Los parámetros disponibles son:
+
+* `category`
+* `available`
+* `page`
+* `limit`
+* `sortBy`
+* `order`
+
+La respuesta incluye información de paginación como:
+
+* `total`
+* `page`
+* `limit`
+* `totalPages`
+* `hasPrevPage`
+* `hasNextPage`
+
+Ejemplo:
+
+```json
+{
+    "status": "success",
+    "payload": {
+        "payload": [],
+        "total": 2,
+        "page": 1,
+        "limit": 1,
+        "totalPages": 2,
+        "hasPrevPage": false,
+        "hasNextPage": true
+    }
+}
 ```
 
 ---
@@ -538,6 +632,8 @@ Body:
 
 El `_id` se genera automáticamente mediante MongoDB.
 
+Los datos son validados antes de crear el servicio.
+
 ---
 
 ## Actualizar servicio
@@ -558,6 +654,8 @@ Ejemplo:
     "available": true
 }
 ```
+
+Los datos enviados son validados antes de realizar la actualización.
 
 ---
 
@@ -610,6 +708,8 @@ El campo `service` contiene el `ObjectId` correspondiente al servicio.
 
 Esto permite mantener una relación entre las colecciones `bookings` y `services`.
 
+Cuando se consulta una reserva por ID, los servicios pueden ser obtenidos mediante **Mongoose `populate`**, permitiendo devolver la información completa del servicio asociado.
+
 ---
 
 # Endpoints Bookings
@@ -629,9 +729,26 @@ Ejemplo:
     "date": "2026-07-30",
     "time": "15:30",
     "status": "pendiente",
-    "services": []
+    "services": [
+        {
+            "service": "68a123456789abcdef123456",
+            "quantity": 1
+        }
+    ]
 }
 ```
+
+Los datos son validados mediante Zod antes de crear la reserva.
+
+---
+
+## Obtener todas las reservas
+
+```http
+GET /api/bookings
+```
+
+Devuelve las reservas almacenadas en MongoDB.
 
 ---
 
@@ -643,6 +760,8 @@ GET /api/bookings/:bid
 
 El parámetro `bid` corresponde al `_id` generado por MongoDB.
 
+Los servicios asociados son obtenidos mediante `populate`.
+
 ---
 
 ## Agregar servicio a una reserva
@@ -653,8 +772,10 @@ POST /api/bookings/:bid/services/:sid
 
 Donde:
 
-- `bid` corresponde al `_id` de la reserva.
-- `sid` corresponde al `_id` del servicio.
+* `bid` corresponde al `_id` de la reserva.
+* `sid` corresponde al `_id` del servicio.
+
+Ambos parámetros son validados para comprobar que tengan un formato válido de `ObjectId`.
 
 ### Regla de negocio
 
@@ -662,8 +783,17 @@ Si el mismo servicio se agrega nuevamente dentro de una reserva, se incrementa a
 
 ```json
 {
+    "service": "68a123456789abcdef123456",
     "quantity": 2
 }
+```
+
+Por ejemplo:
+
+```text
+Primera vez → quantity: 1
+Segunda vez → quantity: 2
+Tercera vez → quantity: 3
 ```
 
 Esta lógica se encuentra implementada en:
@@ -785,34 +915,57 @@ ServiceModel.findByIdAndUpdate(id, data)
 ServiceModel.findByIdAndDelete(id)
 ```
 
+Para las reservas también se utilizan operaciones de Mongoose como:
+
+```js
+BookingModel.find()
+```
+
+```js
+BookingModel.findById(id)
+```
+
+```js
+BookingModel.create(data)
+```
+
+```js
+BookingModel.findByIdAndUpdate(id, data)
+```
+
 ---
 
 # Características implementadas
 
-- CRUD completo de servicios.
-- Gestión de reservas.
-- Arquitectura en capas.
-- Separación de responsabilidades.
-- Persistencia mediante MongoDB Atlas.
-- Uso de Mongoose como ODM.
-- Modelos de Mongoose para `services`, `bookings` y `messages`.
-- Referencias entre reservas y servicios mediante `ObjectId`.
-- Inyección de dependencias mediante configuración centralizada.
-- IDs generados automáticamente por MongoDB.
-- Validación de datos.
-- Manejo de errores HTTP.
-- Uso de `req.params`, `req.query` y `req.body`.
-- Organización mediante Express Router.
-- Reglas de negocio implementadas dentro de Services.
-- Acceso a datos aislado mediante DAO.
-- Repositories como capa intermedia entre lógica de negocio y persistencia.
-- Variables de entorno para la conexión con MongoDB Atlas.
-- Vistas server-side mediante Express Handlebars.
-- Layout compartido mediante Handlebars.
-- Archivos estáticos mediante Express.
-- Comunicación en tiempo real mediante Socket.IO.
-- Actualización de disponibilidad de servicios sin recargar la página.
-- La API REST continúa funcionando independientemente de las vistas.
+* CRUD completo de servicios.
+* Gestión de reservas.
+* Arquitectura en capas.
+* Separación de responsabilidades.
+* Persistencia mediante MongoDB Atlas.
+* Uso de Mongoose como ODM.
+* Modelos de Mongoose para `services`, `bookings` y `messages`.
+* Referencias entre reservas y servicios mediante `ObjectId`.
+* Uso de `populate` para obtener servicios asociados a una reserva.
+* Inyección de dependencias mediante configuración centralizada.
+* IDs generados automáticamente por MongoDB.
+* Validación de datos mediante Zod.
+* Validación de parámetros `ObjectId`.
+* Manejo de errores HTTP.
+* Uso de `req.params`, `req.query` y `req.body`.
+* Organización mediante Express Router.
+* Reglas de negocio implementadas dentro de Services.
+* Acceso a datos aislado mediante DAO.
+* Repositories como capa intermedia entre lógica de negocio y persistencia.
+* Variables de entorno para la conexión con MongoDB Atlas.
+* Paginación de servicios.
+* Filtrado de servicios mediante query params.
+* Ordenamiento de servicios.
+* Vistas server-side mediante Express Handlebars.
+* Layout compartido mediante Handlebars.
+* Archivos estáticos mediante Express.
+* Comunicación en tiempo real mediante Socket.IO.
+* Actualización de disponibilidad de servicios sin recargar la página.
+* La API REST continúa funcionando independientemente de las vistas.
 
 ---
 
@@ -820,15 +973,20 @@ ServiceModel.findByIdAndDelete(id)
 
 Durante el desarrollo se realizaron distintas mejoras sobre la aplicación:
 
-- Se agregó `getAll()` al DAO de bookings para permitir la consulta de todas las reservas.
-- Se implementó una validación para impedir eliminar servicios asociados a reservas activas.
-- Se migró la persistencia desde archivos JSON hacia MongoDB Atlas.
-- Se incorporó Express Handlebars para las vistas server-side.
-- Se incorporó Socket.IO para comunicación en tiempo real.
-- Se implementó el cambio de disponibilidad de servicios mediante Socket.IO.
-- Se mantuvo la arquitectura en capas existente.
-- Se mantuvo la API REST sin reemplazar sus endpoints.
-- Se agregaron archivos públicos para CSS y JavaScript.
+* Se agregó `getAll()` al DAO de bookings para permitir la consulta de todas las reservas.
+* Se implementó una validación para impedir eliminar servicios asociados a reservas activas.
+* Se migró la persistencia desde archivos JSON hacia MongoDB Atlas.
+* Se incorporó Express Handlebars para las vistas server-side.
+* Se incorporó Socket.IO para comunicación en tiempo real.
+* Se implementó el cambio de disponibilidad de servicios mediante Socket.IO.
+* Se mantuvo la arquitectura en capas existente.
+* Se mantuvo la API REST sin reemplazar sus endpoints.
+* Se agregaron archivos públicos para CSS y JavaScript.
+* Se incorporó Zod para la validación de datos.
+* Se agregaron validaciones para los identificadores `ObjectId`.
+* Se incorporó paginación, filtrado y ordenamiento para la consulta de servicios.
+* Se implementó `populate` para obtener los servicios asociados a las reservas.
+* Se implementó la regla de negocio para incrementar `quantity` cuando se agrega nuevamente el mismo servicio a una reserva.
 
 ---
 
@@ -838,9 +996,9 @@ El archivo `.env` contiene información sensible, como las credenciales y la URI
 
 Por este motivo:
 
-- `.env` no debe subirse al repositorio.
-- `node_modules` no debe subirse al repositorio.
-- Se incluye `.env.example` como referencia para configurar el proyecto.
+* `.env` no debe subirse al repositorio.
+* `node_modules` no debe subirse al repositorio.
+* Se incluye `.env.example` como referencia para configurar el proyecto.
 
 Ejemplo:
 

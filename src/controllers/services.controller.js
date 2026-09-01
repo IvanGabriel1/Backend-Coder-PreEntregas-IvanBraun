@@ -1,10 +1,9 @@
 import { serviceService } from "../config/index.js";
 
-export const getServices = async  (req, res) => {
+export const getServices = async (req, res) => {
     try {
-        const { category, available } = req.query;
 
-       const services = await serviceService.getServices(category, available);
+        const services = await serviceService.getServices(req.query);
 
         res.status(200).json({
             status: 'success',

@@ -8,9 +8,9 @@ export class BookingRepository {
         return this.dao.getAll();
     }
 
-    getById(id) {
-        return this.dao.getById(id);
-    }
+    getById(id, options) {
+    return this.dao.getById(id, options);
+}
 
     create(data) {
         return this.dao.create(data);

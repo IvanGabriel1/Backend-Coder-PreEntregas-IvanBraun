@@ -8,9 +8,9 @@ export class ServiceRepository {
         return this.dao.create(data);
     }
 
-    getAll() {
-    return this.dao.getAll();
-    }
+  getAll(options) {
+    return this.dao.getAll(options);
+}
 
     getById(id) {
         return this.dao.getById(id);

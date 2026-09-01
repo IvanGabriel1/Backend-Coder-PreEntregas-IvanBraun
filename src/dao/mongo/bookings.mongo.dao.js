@@ -5,9 +5,15 @@ export class BookingsMongoDao {
         return BookingModel.find().lean();
     }
 
-    async getById(id) {
-        return BookingModel.findById(id);
+ async getById(id, { populate = false } = {}) {
+    const query = BookingModel.findById(id);
+
+    if (populate) {
+        query.populate("services.service");
     }
+
+    return query.lean();
+}
 
     async create(data) {
         return BookingModel.create(data);
@@ -18,3 +24,4 @@ export class BookingsMongoDao {
     }
 
 };
+

@@ -13,7 +13,7 @@ export const getBookingById = async (req, res) => {
 
     } catch (error) {
 
-         if (error.message === "no encontrada") {
+         if (error.message === "Reserva no encontrada") {
             return res.status(404).json({
                 status: 'error',
                 message: error.message
@@ -89,7 +89,7 @@ export const getAllBookings = async (req, res) => {
 
     } catch (error) {
 
-         if (error.message === "no encontrada") {
+         if (error.message === "no se encontro reservas") {
             return res.status(404).json({
                 status: 'error',
                 message: error.message
