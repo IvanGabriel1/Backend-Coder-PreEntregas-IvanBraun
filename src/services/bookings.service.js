@@ -75,4 +75,28 @@ async getBookingById(id) {
        
         return bookings;
     }
+
+    async updateBooking(id, data) {
+    const booking = await this.repository.update(id, data);
+
+    if (!booking) {
+        const error = new Error("Reserva no encontrada");
+        error.statusCode = 404;
+        throw error;
+    }
+
+    return booking;
+}
+
+async deleteBooking(id) {
+    const booking = await this.repository.delete(id);
+
+    if (!booking) {
+        const error = new Error("Reserva no encontrada");
+        error.statusCode = 404;
+        throw error;
+    }
+
+    return booking;
+}
 }

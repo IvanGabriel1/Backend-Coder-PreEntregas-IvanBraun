@@ -23,5 +23,8 @@ export class BookingsMongoDao {
         return BookingModel.findByIdAndUpdate(id, data, { returnDocument: 'after', runValidators: true});
     }
 
+    async delete(id) {
+    return BookingModel.findByIdAndDelete(id);
+}
 };
 

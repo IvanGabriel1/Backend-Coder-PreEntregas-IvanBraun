@@ -16,5 +16,3 @@ if(!config.port) {
 if (!config.mongoUri) {
  throw new Error('Falta configurar MONGO_URI en las variables de entorno');
  }
-
-// export default config;

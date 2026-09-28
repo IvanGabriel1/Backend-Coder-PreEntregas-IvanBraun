@@ -20,5 +20,8 @@ export class BookingRepository {
         return this.dao.update(id, data);
     }
 
+    delete(id) {
+    return this.dao.delete(id);
+    }
     
 }

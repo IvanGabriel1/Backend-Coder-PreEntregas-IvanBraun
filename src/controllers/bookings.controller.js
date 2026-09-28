@@ -48,6 +48,61 @@ export const createBooking = async (req, res) => {
     }
 }
 
+export const updateBooking = async (req, res) => {
+    try {
+        const { bid } = req.params;
+        const updateData = req.body;
+
+        const updatedBooking = await bookingService.updateBooking(bid, updateData);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Reserva actualizada correctamente',
+            payload: updatedBooking
+        });
+
+    } catch (error) {
+        if (error.message === "Reserva no encontrada") {
+            return res.status(404).json({
+                status: 'error',
+                message: error.message
+            });
+        }
+
+        res.status(400).json({
+            status: 'error',
+            message: error.message
+        });
+    }
+}
+
+export const deleteBooking = async (req, res) => {
+    try {
+        const { bid } = req.params;
+
+        const deletedBooking = await bookingService.deleteBooking(bid);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Reserva eliminada correctamente',
+            payload: deletedBooking
+        });
+
+    } catch (error) {
+        if (error.message === "Reserva no encontrada") {
+            return res.status(404).json({
+                status: 'error',
+                message: error.message
+            });
+        }
+
+        res.status(400).json({
+            status: 'error',
+            message: error.message
+        });
+    }
+}
+
 export const addServiceToBooking = async (req, res) => {
  try{
         const {bid, sid} = req.params;

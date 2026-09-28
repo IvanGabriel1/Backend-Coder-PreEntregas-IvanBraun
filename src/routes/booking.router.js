@@ -4,7 +4,9 @@ import {
     getBookingById,
     createBooking,
     addServiceToBooking,
-    getAllBookings
+    getAllBookings,
+     updateBooking,
+    deleteBooking
 } from '../controllers/bookings.controller.js';
 
 import {
@@ -19,6 +21,10 @@ const router = Router();
 router.get('/:bid', getBookingById);
 
 router.get('/', getAllBookings);
+
+router.put('/:bid', updateBooking);
+
+router.delete('/:bid', deleteBooking);
 
 router.post(
     '/',
